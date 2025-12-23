@@ -4,6 +4,8 @@ import { ThemeProvider } from "../src/contexts/theme-context";
 
 import Layout from "@/routes/layout";
 import DashboardPage from "@/routes/dashboard/page";
+import CategoryPage from "@/routes/categories/page";
+import NotFoundPage from "@/routes/not-found/page";
 
 function App() {
     const router = createBrowserRouter([
@@ -14,6 +16,14 @@ function App() {
                 {
                     index: true,
                     element: <DashboardPage />,
+                },
+                {
+                    path: "categories",
+                    element: <CategoryPage/>,
+                },
+                 {
+                    path: "analytics",
+                    element: <h1 className="title">Analytics</h1>,
                 },
                 {
                     path: "analytics",
@@ -50,6 +60,10 @@ function App() {
                 {
                     path: "settings",
                     element: <h1 className="title">Settings</h1>,
+                },
+                {
+                    path: "*",
+                    element: <NotFoundPage />,
                 },
             ],
         },
