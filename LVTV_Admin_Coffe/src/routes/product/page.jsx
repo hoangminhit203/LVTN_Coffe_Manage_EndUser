@@ -1,233 +1,300 @@
 import React, { useState, useEffect } from "react";
-import { Eye, PencilLine, Trash, Plus, Package } from "lucide-react";
+import { Eye, PencilLine, Trash, Plus, Package, Search, RefreshCw } from "lucide-react"; // Thêm icon
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { getProducts, deleteProduct } from "../../service/productService";
+import { getProducts, deleteProduct, searchProducts } from "../../service/productService"; // Import searchProducts
+import Pagination from "../../components/pagination/Pagination"; // Import Pagination component
 
-// Component hiển thị danh sách sản phẩm
 const ProductManagement = () => {
+    const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [pagination, setPagination] = useState({
-        currentPage: 1,
+    
+    // State cho tìm kiếm
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
+
+    const [paging, setPaging] = useState({
+        pageNumber: 1,
         totalPages: 1,
         totalRecords: 0,
         pageSize: 10,
     });
-    const navigate = useNavigate();
 
-    // Load products
+    // Load products khi trang thay đổi hoặc component mount
     useEffect(() => {
-        loadProducts();
-    }, [pagination.currentPage]);
+        handleLoadData();
+    }, [paging.pageNumber, paging.pageSize]);
 
-    const loadProducts = async () => {
+    // Hàm xử lý load dữ liệu (chia logic tìm kiếm và load thường)
+    const handleLoadData = async () => {
         try {
             setIsLoading(true);
-            const response = await getProducts(pagination.currentPage, pagination.pageSize);
-            if (response.isSuccess) {
-                setProducts(response.data.records || []);
-                setPagination({
-                    currentPage: response.data.currentPage,
-                    totalPages: response.data.totalPages,
-                    totalRecords: response.data.totalRecords,
-                    pageSize: response.data.pageSize,
+            let response;
+
+            if (searchTerm.trim()) {
+                // Nếu có từ khóa -> Gọi API tìm kiếm
+                response = await searchProducts(searchTerm, paging.pageNumber, paging.pageSize);
+                setIsSearching(true);
+            } else {
+                // Load bình thường
+                response = await getProducts(paging.pageNumber, paging.pageSize);
+                setIsSearching(false);
+            }
+
+            // Kiểm tra response (cấu trúc tùy thuộc vào backend trả về, giả sử trả về .data)
+            // Lưu ý: Cần đảm bảo backend trả về đúng cấu trúc records, currentPage...
+            const data = response.data || response; // Fallback nếu API trả thẳng data
+            
+            if (data) {
+                setProducts(data.records || []);
+                setPaging({
+                    pageNumber: data.currentPage || 1,
+                    totalPages: data.totalPages || 1,
+                    totalRecords: data.totalRecords || 0,
+                    pageSize: data.pageSize || 10,
                 });
             }
         } catch (error) {
             console.error("Error loading products:", error);
             toast.error("Không thể tải danh sách sản phẩm");
+            setProducts([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Hàm xử lý xóa sản phẩm
+    // Xử lý khi bấm nút tìm kiếm
+    const handleSearch = (e) => {
+        e.preventDefault();
+        // Reset về trang 1 khi tìm kiếm mới
+        setPaging(prev => ({ ...prev, pageNumber: 1 }));
+        handleLoadData();
+    };
+
+    // Xử lý xóa
     const handleDelete = async (id) => {
         if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này không?")) {
             try {
                 await deleteProduct(id);
                 toast.success("Xóa sản phẩm thành công!");
-                loadProducts(); // Reload danh sách
+                handleLoadData(); // Reload lại data
             } catch (error) {
                 toast.error(`Lỗi khi xóa sản phẩm: ${error.message}`);
             }
         }
     };
 
-    // Lấy ảnh chính từ variants
+    // Helper: Lấy ảnh chính an toàn hơn
     const getMainImage = (product) => {
-        if (product.variants && product.variants.length > 0) {
-            const mainImage = product.variants[0].images?.find((img) => img.isMain);
-            return mainImage?.imageUrl || product.variants[0].images?.[0]?.imageUrl;
-        }
-        return null;
+        if (!product?.variants || product.variants.length === 0) return null;
+        
+        const firstVariant = product.variants[0];
+        if (!firstVariant?.images || firstVariant.images.length === 0) return null;
+
+        // Tìm ảnh có isMain = true, nếu không có lấy ảnh đầu tiên
+        const mainImage = firstVariant.images.find((img) => img.isMain);
+        return mainImage?.imageUrl || firstVariant.images[0]?.imageUrl;
     };
 
-    // Format date
+    // Helper: Lấy giá tiền (Hiển thị khoảng giá hoặc giá variant đầu)
+    const getPriceDisplay = (product) => {
+        if (!product?.variants || product.variants.length === 0) return "---";
+        const price = product.variants[0].price;
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+    };
+
+    // Helper: Format ngày
     const formatDate = (dateString) => {
         if (!dateString) return "--";
-        const date = new Date(dateString);
-        return date.toLocaleDateString("vi-VN");
+        return new Date(dateString).toLocaleDateString("vi-VN");
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="mx-auto max-w-7xl">
-                {/* Header */}
-                <div className="mb-6 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Package className="h-8 w-8 text-indigo-600" />
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Quản lý Sản Phẩm</h1>
-                            <p className="text-sm text-gray-600">Tổng cộng: {pagination.totalRecords} sản phẩm</p>
-                        </div>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 font-sans">
+            <div className="mx-auto max-w-7xl space-y-6">
+                
+                {/* --- HEADER SECTION --- */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Package className="h-7 w-7 text-indigo-600 dark:text-indigo-400" />
+                            Quản lý Sản Phẩm
+                        </h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Tổng cộng: <span className="font-semibold text-gray-700 dark:text-gray-300">{paging.totalRecords}</span> sản phẩm
+                        </p>
                     </div>
                     <button
-                        className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-white hover:bg-indigo-700 transition-colors"
                         onClick={() => navigate("/products/new")}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all"
                     >
                         <Plus className="h-5 w-5" />
                         Thêm Sản Phẩm
                     </button>
                 </div>
 
-                {/* Products Table */}
-                <div className="rounded-xl bg-white shadow-lg overflow-hidden">
-                    <div className="overflow-x-auto">
-                        {isLoading ? (
-                            <div className="flex justify-center items-center py-12">
-                                <div className="text-gray-500">Đang tải...</div>
-                            </div>
-                        ) : products.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12">
-                                <Package className="h-16 w-16 text-gray-300 mb-4" />
-                                <p className="text-gray-500 text-lg">Chưa có sản phẩm nào</p>
-                                <button
-                                    onClick={() => navigate("/products/new")}
-                                    className="mt-4 text-indigo-600 hover:text-indigo-700"
-                                >
-                                    Tạo sản phẩm đầu tiên
-                                </button>
-                            </div>
-                        ) : (
-                            <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            #
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Ảnh
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tên Sản Phẩm
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Danh Mục
-                                        </th>
-                                        <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Variants
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Ngày Tạo
-                                        </th>
-                                        <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Thao Tác
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {products.map((product, index) => (
-                                        <tr key={product.productId} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {(pagination.currentPage - 1) * pagination.pageSize + index + 1}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {getMainImage(product) ? (
-                                                    <img
-                                                        src={getMainImage(product)}
-                                                        alt={product.name}
-                                                        className="h-16 w-16 rounded-lg object-cover border border-gray-200"
-                                                    />
-                                                ) : (
-                                                    <div className="h-16 w-16 rounded-lg bg-gray-100 flex items-center justify-center">
-                                                        <Package className="h-8 w-8 text-gray-400" />
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                                                <div className="text-sm text-gray-500 line-clamp-1">{product.description}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {product.category && product.category.length > 0 ? (
-                                                    <span className="inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">
-                                                        {product.category[0].name}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-sm text-gray-400">--</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <button
-                                                    onClick={() => navigate(`/products/${product.productId}/variants`)}
-                                                    className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-200"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                    {product.variants?.length || 0}
-                                                </button>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {formatDate(product.createdAt)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <div className="flex items-center justify-center gap-3">
-                                                    <button
-                                                        onClick={() => navigate(`/products/edit/${product.productId}`)}
-                                                        className="text-indigo-600 hover:text-indigo-900"
-                                                        title="Chỉnh sửa"
-                                                    >
-                                                        <PencilLine className="h-5 w-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(product.productId)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                        title="Xóa"
-                                                    >
-                                                        <Trash className="h-5 w-5" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                {/* --- TOOLBAR (SEARCH) --- */}
+                <div className="rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-between items-center">
+                    <form onSubmit={handleSearch} className="relative w-full sm:max-w-md">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        </div>
+                        <input
+                            type="text"
+                            className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2.5 pl-10 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="Tìm kiếm theo tên sản phẩm..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        {searchTerm && (
+                            <button 
+                                type="button" 
+                                onClick={() => { setSearchTerm(""); setPaging(p => ({...p, pageNumber: 1})); setIsSearching(false); setTimeout(handleLoadData, 0); }}
+                                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                                <span className="text-xs font-bold">Xóa</span>
+                            </button>
                         )}
+                    </form>
+                    
+                    {/* Nút Refresh */}
+                    <button 
+                        onClick={handleLoadData} 
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        title="Tải lại dữ liệu"
+                    >
+                        <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
+
+                {/* --- TABLE CONTENT --- */}
+                <div className="rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+                            <thead className="bg-gray-50 dark:bg-gray-700 text-xs uppercase text-gray-700 dark:text-gray-300">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold">#</th>
+                                    <th className="px-6 py-4 font-semibold">Hình ảnh</th>
+                                    <th className="px-6 py-4 font-semibold">Tên sản phẩm</th>
+                                    <th className="px-6 py-4 font-semibold">Giá (Variant đầu)</th>
+                                    <th className="px-6 py-4 font-semibold">Danh mục</th>
+                                    <th className="px-6 py-4 font-semibold text-center">Biến thể</th>
+                                    <th className="px-6 py-4 font-semibold">Ngày tạo</th>
+                                    <th className="px-6 py-4 font-semibold text-center">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {isLoading ? (
+                                    // Loading State
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <RefreshCw className="h-8 w-8 animate-spin text-indigo-500 dark:text-indigo-400 mb-2" />
+                                                <span className="text-gray-400 dark:text-gray-500">Đang tải dữ liệu...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : products.length === 0 ? (
+                                    // Empty State
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <div className="rounded-full bg-gray-100 dark:bg-gray-700 p-4 mb-3">
+                                                    <Package className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+                                                </div>
+                                                <p className="text-gray-900 dark:text-white font-medium">Không tìm thấy sản phẩm nào</p>
+                                                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                                                    {isSearching ? "Thử tìm kiếm với từ khóa khác" : "Hãy tạo sản phẩm mới để bắt đầu"}
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    // Data Rows
+                                    products.map((product, index) => {
+                                        const imgUrl = getMainImage(product);
+                                        return (
+                                            <tr key={product.productId} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                                    {(paging.pageNumber - 1) * paging.pageSize + index + 1}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+                                                        {imgUrl ? (
+                                                            <img
+                                                                src={imgUrl}
+                                                                alt={product.name}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center text-gray-400 dark:text-gray-500">
+                                                                <Package className="h-6 w-6" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-medium text-gray-900 dark:text-white line-clamp-2" title={product.name}>
+                                                        {product.name}
+                                                    </div>
+                                                    {/* <div className="text-xs text-gray-500 line-clamp-1 mt-0.5">{product.description}</div> */}
+                                                </td>
+                                                <td className="px-6 py-4 text-indigo-600 dark:text-indigo-400 font-medium">
+                                                    {getPriceDisplay(product)}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {product.category && product.category.length > 0 ? (
+                                                        <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/30">
+                                                            {product.category[0].name}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400 dark:text-gray-500 italic">--</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-500/10 dark:ring-gray-600/30">
+                                                        {product.variants?.length || 0} variants
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                                                    {formatDate(product.createdAt)}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {/* Nút Xem chi tiết (Nếu cần) */}
+                                                        {/* <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
+                                                            <Eye className="h-4 w-4" />
+                                                        </button> */}
+                                                        
+                                                        <button
+                                                            onClick={() => navigate(`/products/edit/${product.productId}`)}
+                                                            className="rounded p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors"
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <PencilLine className="h-5 w-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(product.productId)}
+                                                            className="rounded p-1.5 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                                                            title="Xóa"
+                                                        >
+                                                            <Trash className="h-5 w-5" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
                     </div>
 
-                    {/* Pagination */}
-                    {!isLoading && products.length > 0 && pagination.totalPages > 1 && (
-                        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-                            <div className="text-sm text-gray-700">
-                                Trang {pagination.currentPage} / {pagination.totalPages}
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-                                    disabled={pagination.currentPage === 1}
-                                    className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Trước
-                                </button>
-                                <button
-                                    onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-                                    disabled={pagination.currentPage === pagination.totalPages}
-                                    className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Sau
-                                </button>
-                            </div>
+                    {/* --- PAGINATION --- */}
+                    {!isLoading && products.length > 0 && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+                            <Pagination paging={paging} setPaging={setPaging} />
                         </div>
                     )}
                 </div>
