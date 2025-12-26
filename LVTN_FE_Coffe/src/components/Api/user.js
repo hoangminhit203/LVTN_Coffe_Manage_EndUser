@@ -1,0 +1,13 @@
+import api from './products';
+
+// Auth API for user login
+export const userApi = {
+  login: (credentials) => api.post('/Auth/login', credentials),
+  register: (data) => api.post('/Auth/register', data),
+  getOrders: () => api.get('/Order'),
+  getOrderById: (id) => api.get(`/Order/${id}`),
+};
+
+export default userApi;
+
+

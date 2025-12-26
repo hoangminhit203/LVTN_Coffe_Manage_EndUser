@@ -27,6 +27,7 @@ const Footer = () => {
     backgroundSize: 'cover',
     minHeight: '400px',
     width: '100%',
+    margin: 0,
   }
   return (
     <div style={bgImage} className='text-white'>
