@@ -1,4 +1,7 @@
-import { ChartColumn, Home, NotepadText, Package, PackagePlus, Settings, ShoppingBag, UserCheck, UserPlus, Users,LayoutGrid } from "lucide-react";
+import {
+    ChartColumn, Home, NotepadText, Package, PackagePlus,
+    Settings, ShoppingBag, UserCheck, UserPlus, Users, LayoutGrid,NotebookText,PanelTop 
+} from "lucide-react";
 
 import ProfileImage from "@/assets/profile-image.jpg";
 import ProductImage from "@/assets/product-image.jpg";
@@ -65,7 +68,27 @@ export const navbarLinks = [
             {
                 label: "New product",
                 icon: PackagePlus,
-                path: "/new-product",
+                path: "/products/new",
+            },
+            {
+                label: "Inventory",
+                icon: ShoppingBag,
+                path: "/inventory",
+            },
+        ],
+    },
+    {
+        title: "Product attributes",
+         links: [
+            {
+                label: "Flavor Notes",
+                icon: NotebookText,
+                path: "/flavornotes",
+            },
+            {
+                label: "Brewing Methods",
+                icon: PanelTop,
+                path: "/brewingmethods",
             },
             {
                 label: "Inventory",

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { getCategories, createdCategory, updateCategory, deleteCategory, getCategoryById } from "../../service/categoryService";
-import CategoryDialog from "../../components/category/category-dialog";
-import CategoryViewDialog from "../../components/category/category-view-dialog";
-import CategoryTable from "../../components/category/category-table";
+import { getBrewingMethods, createBrewingMethod, updateBrewingMethod, deleteBrewingMethod, getBrewingMethodById } from "../../service/brewingMethodsService";
+import BrewingMethodDialog from "../../components/brewingmethod/brewingmethod-dialog";
+import BrewingMethodViewDialog from "../../components/brewingmethod/brewingmethod-view-dialog";
+import BrewingMethodTable from "../../components/brewingmethod/brewingmethod-table";
 import Pagination from "../../components/pagination/Pagination";
 import { Loader2, Plus, CheckCircle, XCircle, Search } from "lucide-react";
 
-const CategoryPage = () => {
-  const [categories, setCategories] = useState([]);
+const BrewingMethodPage = () => {
+  const [brewingMethods, setBrewingMethods] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [paging, setPaging] = useState({
@@ -17,13 +17,13 @@ const CategoryPage = () => {
     totalRecords: 0,
   });
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [viewCategory, setViewCategory] = useState({ show: false, data: null });
+  const [editingBrewingMethod, setEditingBrewingMethod] = useState(null);
+  const [viewBrewingMethod, setViewBrewingMethod] = useState({ show: false, data: null });
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
   const [notification, setNotification] = useState({ show: false, type: "", message: "" });
 
   useEffect(() => {
-    fetchCategories();
+    fetchBrewingMethods();
   }, [paging.pageNumber, paging.pageSize, searchTerm]);
 
   // Auto hide notification after 3 seconds
@@ -35,18 +35,18 @@ const CategoryPage = () => {
       return () => clearTimeout(timer);
     }
   }, [notification.show]);
-// lấy api danh mục
-  const fetchCategories = async () => {
+// lấy api brewing methods
+  const fetchBrewingMethods = async () => {
     try {
       setLoading(true);
-      const res = await getCategories({
+      const res = await getBrewingMethods({
         ...paging,
         searchTerm: searchTerm.trim()
       });
 
       console.log("API RESPONSE:", res);
 
-      setCategories(res.data.records);
+      setBrewingMethods(res.data.records);
       setPaging((prev) => ({
         ...prev,
         totalPages: res.data.totalPages,
@@ -58,27 +58,27 @@ const CategoryPage = () => {
       setLoading(false);
     }
   };
-// Handle create/update category
+// Handle create/update brewing method
   const handleSubmit = async (data) => {
     try {
-      if (editingCategory) {
-        await updateCategory(editingCategory.categoryId, data);
+      if (editingBrewingMethod) {
+        await updateBrewingMethod(editingBrewingMethod.brewingMethodId, data);
         setNotification({
           show: true,
           type: "success",
-          message: "Category updated successfully!"
+          message: "Brewing method updated successfully!"
         });
       } else {
-        await createdCategory(data);
+        await createBrewingMethod(data);
         setNotification({
           show: true,
           type: "success",
-          message: "Category added successfully!"
+          message: "Brewing method added successfully!"
         });
       }
       setOpenDialog(false);
-      setEditingCategory(null);
-      fetchCategories(); 
+      setEditingBrewingMethod(null);
+      fetchBrewingMethods(); 
     } catch (error) {
       console.error("Save failed:", error);
       setNotification({
@@ -90,22 +90,22 @@ const CategoryPage = () => {
   };
 
   // Handle edit button click
-  const handleEdit = (category) => {
-    setEditingCategory(category);
+  const handleEdit = (brewingMethod) => {
+    setEditingBrewingMethod(brewingMethod);
     setOpenDialog(true);
   };
 
   // Handle view button click
   const handleView = async (id) => {
     try {
-      const data = await getCategoryById(id);
-      setViewCategory({ show: true, data });
+      const data = await getBrewingMethodById(id);
+      setViewBrewingMethod({ show: true, data });
     } catch (error) {
-      console.error("Get category failed:", error);
+      console.error("Get brewing method failed:", error);
       setNotification({
         show: true,
         type: "error",
-        message: "Failed to load category details!"
+        message: "Failed to load brewing method details!"
       });
     }
   };
@@ -118,14 +118,14 @@ const CategoryPage = () => {
   // Confirm delete
   const handleDeleteConfirm = async () => {
     try {
-      await deleteCategory(deleteConfirm.id);
+      await deleteBrewingMethod(deleteConfirm.id);
       setNotification({
         show: true,
         type: "success",
-        message: "Category deleted successfully!"
+        message: "Brewing method deleted successfully!"
       });
       setDeleteConfirm({ show: false, id: null });
-      fetchCategories();
+      fetchBrewingMethods();
     } catch (error) {
       console.error("Delete failed:", error);
       setNotification({
@@ -140,7 +140,7 @@ const CategoryPage = () => {
   // Handle dialog close
   const handleDialogClose = () => {
     setOpenDialog(false);
-    setEditingCategory(null);
+    setEditingBrewingMethod(null);
   };
   return (
     <div className="p-6 min-h-screen bg-white dark:bg-slate-900 transition-colors">
@@ -166,14 +166,14 @@ const CategoryPage = () => {
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 transition-colors">
-          Categories
+          Brewing Methods
         </h1>
         <button
           onClick={() => setOpenDialog(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700 font-medium"
         >
           <Plus size={20} />
-          Add Category
+          Add Brewing Method
         </button>
       </div>
 
@@ -183,7 +183,7 @@ const CategoryPage = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500" size={20} />
           <input
             type="text"
-            placeholder="Search by category name..."
+            placeholder="Search by brewing method name..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -194,18 +194,18 @@ const CategoryPage = () => {
         </div>
       </div>
 
-      <CategoryDialog
+      <BrewingMethodDialog
         open={openDialog}
         onClose={handleDialogClose}
         onSubmit={handleSubmit}
-        editData={editingCategory}
+        editData={editingBrewingMethod}
       />
 
-      {/* View Category Dialog */}
-      <CategoryViewDialog
-        open={viewCategory.show}
-        onClose={() => setViewCategory({ show: false, data: null })}
-        category={viewCategory.data}
+      {/* View Brewing Method Dialog */}
+      <BrewingMethodViewDialog
+        open={viewBrewingMethod.show}
+        onClose={() => setViewBrewingMethod({ show: false, data: null })}
+        brewingMethod={viewBrewingMethod.data}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -216,7 +216,7 @@ const CategoryPage = () => {
               Confirm Delete
             </h3>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              Are you sure you want to delete this category? This action cannot be undone.
+              Are you sure you want to delete this brewing method? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -243,8 +243,8 @@ const CategoryPage = () => {
         </div>
       ) : (
         <>
-          <CategoryTable 
-            categories={categories} 
+          <BrewingMethodTable 
+            brewingMethods={brewingMethods} 
             onView={handleView}
             onEdit={handleEdit}
             onDelete={handleDeleteClick}
@@ -256,4 +256,4 @@ const CategoryPage = () => {
   );
 };
 
-export default CategoryPage;
+export default BrewingMethodPage;

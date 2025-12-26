@@ -5,6 +5,10 @@ import { ThemeProvider } from "../src/contexts/theme-context";
 import Layout from "@/routes/layout";
 import DashboardPage from "@/routes/dashboard/page";
 import CategoryPage from "@/routes/categories/page";
+import FlavorNotePage from "@/routes/flavorNote/page";
+import BrewingMethodPage from "@/routes/brewingmethod/page";
+import ProductPage from "@/routes/product/page";
+import NewProduct from "@/components/product/NewProduct";
 import NotFoundPage from "@/routes/not-found/page";
 
 function App() {
@@ -17,13 +21,25 @@ function App() {
                     index: true,
                     element: <DashboardPage />,
                 },
-                {
+                   {
                     path: "categories",
                     element: <CategoryPage/>,
                 },
-                 {
-                    path: "analytics",
-                    element: <h1 className="title">Analytics</h1>,
+                {
+                    path: "flavornotes",
+                    element: <FlavorNotePage/>,
+                },
+                {
+                    path: "brewingmethods",
+                    element: <BrewingMethodPage/>,
+                },
+                   {
+                    path: "products",
+                    element: <ProductPage />,
+                },
+                {
+                    path: "products/new",
+                    element: <NewProduct />,
                 },
                 {
                     path: "analytics",
@@ -45,13 +61,10 @@ function App() {
                     path: "verified-customers",
                     element: <h1 className="title">Verified Customers</h1>,
                 },
+             
                 {
-                    path: "products",
-                    element: <h1 className="title">Products</h1>,
-                },
-                {
-                    path: "new-product",
-                    element: <h1 className="title">New Product</h1>,
+                    path: "products/edit/:id",
+                    element: <h1 className="title">Edit Product</h1>,
                 },
                 {
                     path: "inventory",
