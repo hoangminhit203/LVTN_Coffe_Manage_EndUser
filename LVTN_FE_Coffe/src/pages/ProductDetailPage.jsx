@@ -1,195 +1,196 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { productApi, cartApi } from '../components/Api/products';
-import { isAuthenticated, getUserIdFromToken } from '../utils/auth';
+import { productApi, cartApi, wishlistApi } from '../components/Api/products';
+import { isAuthenticated } from '../utils/auth';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (id) {
-      fetchProduct();
-    }
+    if (id) fetchProduct();
   }, [id]);
 
   const fetchProduct = async () => {
     try {
       setLoading(true);
       const res = await productApi.getById(id);
-      
-      if (res?.isSuccess === false) {
-        throw new Error(res?.message || 'Không thể tải sản phẩm');
-      }
-
+      // Xử lý dữ liệu linh hoạt tùy theo cấu trúc API trả về
       const productData = res?.data || res;
       setProduct(productData);
     } catch (err) {
-      setError(err?.message || 'Không thể tải sản phẩm');
-      console.error('Product detail load error', err);
+      console.error('Lỗi tải chi tiết sản phẩm:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getImage = (p) => {
-    if (p?.imageUrl || p?.image || p?.thumbnail || p?.photo) 
-      return p.imageUrl || p.image || p.thumbnail || p.photo;
-    const firstVariant = p?.variants?.[0];
-    if (firstVariant?.images?.length) {
-      const img = firstVariant.images[0];
-      return typeof img === 'string' ? img : img?.url || img?.path || img?.imageUrl || null;
-    }
-    return null;
-  };
-
-  const getPrice = (p) => {
-    return p?.variants?.[0]?.price ?? p?.price ?? null;
-  };
-
-  const getVariantId = (p) => {
-    return p?.variants?.[0]?.variantId ?? null;
-  };
-
-  const formatPrice = (price) => {
-    if (price === null || price === undefined) return '0 đ';
-    return Number(price).toLocaleString('vi-VN') + ' đ';
-  };
-
-  const handleAddToCart = async () => {
-    // Check if user is authenticated
+  // --- HÀM XỬ LÝ THÊM VÀO WISHLIST ---
+  const handleAddToWishlist = async () => {
     if (!isAuthenticated()) {
-      alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng');
+      alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
       navigate('/login');
       return;
     }
 
-    const userId = getUserIdFromToken();
-    console.log('User ID:', userId);
-
-    const variantId = getVariantId(product);
-    if (!variantId) {
-      alert('Sản phẩm không có variant');
-      return;
-    }
-
     try {
-      await cartApi.addItem(variantId, 1);
-      alert('Đã thêm sản phẩm vào giỏ hàng!');
+      // id từ useParams() là string, backend nhận int nên ta dùng Number(id)
+      await wishlistApi.add(id);
+      alert('Đã thêm sản phẩm vào danh sách yêu thích thành công! ♥');
     } catch (error) {
-      console.error('Lỗi thêm vào giỏ hàng:', error);
-      alert(error?.message || 'Không thể thêm sản phẩm vào giỏ hàng');
+      // Lấy message lỗi từ hàm apiRequest (fetch) của bạn
+      alert(error.message || 'Sản phẩm đã có trong danh sách yêu thích');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Đang tải sản phẩm...</div>
-      </div>
-    );
-  }
+  // --- HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG ---
+  const handleAddToCart = async () => {
+    if (!isAuthenticated()) {
+      alert('Vui lòng đăng nhập để mua hàng');
+      navigate('/login');
+      return;
+    }
+    // Lấy variantId đầu tiên (hoặc logic chọn variant của bạn)
+    const variantId = product?.variants?.[0]?.id || product?.variants?.[0]?.variantId;
+    
+    try {
+      await cartApi.addItem(variantId, 1);
+      alert('Đã thêm vào giỏ hàng thành công!');
+    } catch (error) {
+      alert(error.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.');
+    }
+  };
 
-  if (error || !product) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-red-500">
-          {error || 'Không tìm thấy sản phẩm'}
-        </div>
-        <button
-          onClick={() => navigate('/product-list')}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Quay lại danh sách
-        </button>
-      </div>
-    );
-  }
+  // Helper lấy ảnh sản phẩm
+  const getImage = (p) => {
+    const firstVariant = p?.variants?.[0];
+    return firstVariant?.images?.[0]?.imageUrl || 'https://via.placeholder.com/500';
+  };
 
-  const image = getImage(product);
-  const price = getPrice(product);
+  // Helper lấy giá sản phẩm
+  const getPrice = (p) => p?.variants?.[0]?.price ?? 0;
+
+  // Định dạng tiền tệ
+  const formatPrice = (price) => Number(price).toLocaleString('vi-VN') + ' đ';
+
+  // Logic hiển thị trạng thái kho hàng
+  const renderStockStatus = (stock) => {
+    if (stock > 0) {
+      return <span className="text-green-600 font-medium">Còn hàng</span>;
+    }
+    return <span className="text-red-600 font-medium">Hết hàng</span>;
+  };
+
+  const getSku = (p) => {
+    return p?.variants?.[0]?.sku ?? p?.sku ?? 'N/A';
+  };
+
+  if (loading) return <div className="py-20 text-center text-gray-400">Đang tải sản phẩm...</div>;
+  if (!product) return <div className="py-20 text-center">Không tìm thấy sản phẩm</div>;
+
   const flavorNotes = product?.flavorNotes || [];
   const brewingMethods = product?.brewingMethods || [];
+  const currentStock = product?.variants?.[0]?.stock ?? product?.stock ?? 0;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left Section - Product Image */}
-        <div className="w-full">
-          <div className="w-full h-[320px] sm:h-[420px] md:h-[520px] rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-            {image ? (
+    <div className="bg-gray-50 min-h-screen py-12 font-sans">
+      <div className="container mx-auto px-4 max-w-6xl">
+        
+        {/* Breadcrumb */}
+        <nav className="text-xs text-gray-400 mb-8 uppercase">
+          Trang chủ &gt; Sản phẩm &gt; <span className="text-gray-600 font-bold">{product?.name}</span>
+        </nav>
+
+        <div className="flex flex-col md:flex-row gap-6 items-stretch">
+          
+          {/* CỘT TRÁI: ẢNH */}
+          <div className="w-full md:w-1/2 bg-white border border-gray-200 rounded-lg p-6 flex items-center justify-center shadow-sm">
+            <div className="w-full aspect-square overflow-hidden rounded-md">
               <img
-                src={image}
-                alt={product.name}
-                className="w-full h-full object-contain"
+                src={getImage(product)}
+                alt={product?.name}
+                className="w-full h-full object-contain transition-transform duration-500 hover:scale-105"
               />
-            ) : (
-              <span className="text-gray-400">No image</span>
-            )}
-          </div>
-        </div>
-
-        {/* Right Section - Product Information */}
-        <div className="flex flex-col justify-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-            {product.name}
-          </h1>
-
-          <div className="mb-6">
-            <p className="text-2xl md:text-3xl font-bold text-primary">
-              {formatPrice(price)}
-            </p>
+            </div>
           </div>
 
-          {product.description && (
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              {product.description}
-            </p>
-          )}
+          {/* CỘT PHẢI: THÔNG TIN */}
+          <div className="w-full md:w-1/2 bg-white border border-gray-200 rounded-lg p-8 flex flex-col shadow-sm">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              {product?.name}
+            </h1>
+            
+            <div className="text-sm text-gray-500 space-y-2 mb-6">
+              <p>SKU: <span>{getSku(product)}</span></p>
+              <p>Trạng thái: {renderStockStatus(currentStock)}</p>
+            </div>
 
-          {/* Flavor Notes */}
-          {flavorNotes.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Flavor Notes
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {flavorNotes.map((note, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium"
-                  >
-                    {note}
-                  </span>
-                ))}
+            <div className="bg-gray-50 p-5 rounded-md mb-6 border border-gray-100">
+               <div className="text-3xl font-black text-red-600">
+                  {formatPrice(getPrice(product))}
+               </div>
+            </div>
+
+            {product?.description && (
+              <div className="mb-8 text-gray-600 text-sm leading-relaxed">
+                {product.description}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Brewing Methods */}
-          {brewingMethods.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Brewing Methods
-              </h3>
-              <ul className="list-disc list-inside space-y-1 text-gray-600">
-                {brewingMethods.map((method, index) => (
-                  <li key={index}>{method}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {flavorNotes.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Flavor Notes</h3>
+                <div className="flex flex-wrap gap-2">
+                  {flavorNotes.map((note, index) => (
+                    <span key={index} className="px-3 py-1 bg-orange-50 text-orange-700 rounded-full text-[11px] font-bold border border-orange-100">
+                      {note}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {/* Add to Cart Button */}
-          <button
-            onClick={handleAddToCart}
-            className="w-full md:w-auto bg-secondary hover:bg-brand-dark text-white font-bold py-3 px-8 rounded-lg transition-colors"
-          >
-            Thêm vào giỏ hàng
-          </button>
+            {brewingMethods.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Brewing Methods</h3>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  {brewingMethods.map((method, index) => (
+                    <li key={index} className="flex items-center">
+                      <span className="w-1.5 h-1.5 bg-gray-300 rounded-full mr-3"></span>
+                      {method}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Nút thao tác */}
+            <div className="mt-auto pt-6 border-t border-gray-100 flex gap-4">
+              <button 
+                type="button"
+                onClick={handleAddToWishlist}
+                title="Yêu thích"
+                className="flex items-center justify-center w-14 h-14 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 hover:border-blue-500 transition-all active:scale-90"
+              >
+                <span className="text-2xl">♥</span>
+              </button>
+              
+              <button
+                onClick={handleAddToCart}
+                disabled={currentStock <= 0}
+                className={`flex-1 font-bold py-4 px-8 rounded-md transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2 ${
+                  currentStock > 0 
+                  ? 'bg-red-600 hover:bg-red-700 text-white shadow-md active:scale-95' 
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                }`}
+              >
+                {currentStock > 0 ? 'Mua ngay' : 'Hết hàng'}
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -197,4 +198,3 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
-

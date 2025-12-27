@@ -6,6 +6,10 @@ export const userApi = {
   register: (data) => api.post('/Auth/register', data),
   getOrders: () => api.get('/Order'),
   getOrderById: (id) => api.get(`/Order/${id}`),
+  getProfile: () => api.get('/User/profile'),
+  getAddresses: () => api.get('/User/addresses'),
+  updateProfile: (data) => api.put('/User/profile', data),
+
 };
 
 export default userApi;

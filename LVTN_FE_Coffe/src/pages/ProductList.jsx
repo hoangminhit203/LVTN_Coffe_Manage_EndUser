@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { productApi, cartApi } from '../components/Api/products';
+// IMPORT THÊM wishlistApi Ở ĐÂY
+import { productApi, cartApi, wishlistApi } from '../components/Api/products';
 import { isAuthenticated } from '../utils/auth';
 
 const ProductList = () => {
@@ -12,6 +13,24 @@ const ProductList = () => {
   const navigate = useNavigate();
 
   const API_BASE = 'https://localhost:44384/api';
+
+  // --- HÀM XỬ LÝ THÊM VÀO YÊU THÍCH ---
+  const handleAddToWishlist = async (productId) => {
+    if (!isAuthenticated()) {
+      alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      // Gọi API wishlist dùng fetch đã cấu hình trong products.js
+      await wishlistApi.add(productId);
+      alert('Đã thêm vào danh sách yêu thích thành công! ♥');
+    } catch (err) {
+      // Hiển thị thông báo lỗi (ví dụ: "Sản phẩm đã tồn tại")
+      alert(err.message || 'Không thể thêm vào yêu thích.');
+    }
+  };
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -67,12 +86,12 @@ const ProductList = () => {
       navigate('/login');
       return;
     }
-    const variantId = product?.variants?.[0]?.variantId;
+    const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
     try {
       await cartApi.addItem(variantId, 1);
       alert('Đã thêm sản phẩm vào giỏ hàng!');
     } catch (err) {
-      alert('Có lỗi xảy ra: ' + (err.response?.data?.message || err.message));
+      alert('Có lỗi xảy ra: ' + (err.message || 'Lỗi hệ thống'));
     }
   };
 
@@ -80,7 +99,7 @@ const ProductList = () => {
     <div className="bg-white min-h-screen py-10 font-sans">
       <div className="container mx-auto px-4 max-w-7xl">
         <nav className="text-xs text-gray-400 mb-8 uppercase">
-          🏠 Trang chủ &gt; <span className="text-gray-600 font-bold">Sản phẩm</span>
+           Trang chủ &gt; <span className="text-gray-600 font-bold">Sản phẩm</span>
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-10">
@@ -128,7 +147,6 @@ const ProductList = () => {
                 {products.map((p) => (
                   <div key={p.productId} className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col hover:shadow-lg transition-all duration-300 group">
                     
-                    {/* PHẦN ẢNH - BỎ PADDING ĐỂ FULL KHUNG */}
                     <Link 
                       to={`/product/${p.productId}`} 
                       className="block w-full aspect-square relative bg-white border-b border-gray-100 overflow-hidden"
@@ -140,10 +158,9 @@ const ProductList = () => {
                       />
                     </Link>
 
-                    {/* PHẦN NỘI DUNG */}
                     <div className="p-5 flex flex-col flex-grow">
                       <Link to={`/product/${p.productId}`}>
-                        <h4 className="text-sm font-semibold text-gray-800 hover:text-red-700 line-clamp-2 mb-2 h-10 leading-tight">
+                        <h4 className="text-sm font-semibold text-gray-800 line-clamp-2 mb-2 h-10 leading-tight">
                           {getName(p)}
                         </h4>
                       </Link>
@@ -155,9 +172,12 @@ const ProductList = () => {
                         </p>
 
                         <div className="flex items-center gap-2">
+                          {/* NÚT YÊU THÍCH (WISHLIST) */}
                           <button
+                            onClick={() => handleAddToWishlist(p.productId)}
                             type="button"
-                            className="w-11 h-11 flex items-center justify-center rounded-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-colors"
+                            className="w-11 h-11 flex items-center justify-center rounded-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all active:scale-90"
+                            title="Thêm vào yêu thích"
                           >
                             <span className="text-2xl leading-none">♥</span>
                           </button>
@@ -166,7 +186,7 @@ const ProductList = () => {
                             onClick={() => handleBuyNow(p)}
                             className="flex-1 bg-[#E40046] text-white h-11 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-95 text-xs font-bold uppercase tracking-wider"
                           >
-                            <span className="text-lg">🛒</span> Mua ngay
+                            Mua ngay
                           </button>
                         </div>
                       </div>
