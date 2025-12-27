@@ -63,4 +63,9 @@ export const orderApi = {
   getOrder: (id) => api.get(`/Order/${id}`),
 };
 
+// News API (simple wrapper; backend must expose /News)
+export const newsApi = {
+  getAll: () => api.get('/News'),
+};
+
 export default api;

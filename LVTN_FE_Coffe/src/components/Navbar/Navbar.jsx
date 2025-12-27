@@ -1,174 +1,166 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import Logo from '../../assets/Coffe-Logo.jpg'
-import { FaCoffee, FaUser, FaSignInAlt, FaUserPlus, FaSignOutAlt } from 'react-icons/fa'
-import { isAuthenticated, logout } from '../../utils/auth'
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import Logo from "../../assets/Coffe-Logo.jpg";
+import {
+  FaUser,
+  FaSignInAlt,
+  FaUserPlus,
+  FaSignOutAlt,
+  FaBars,
+  FaTimes,
+} from "react-icons/fa";
+import { isAuthenticated, logout } from "../../utils/auth";
 
 const Menus = [
-  {
-    id: 1,
-    name: 'Home',
-    link: '/',
-  },
-  {
-    id: 2,
-    name: 'Products',
-    link: '/product-list',
-  },
-  {
-    id: 3,
-    name: 'About',
-    link: '#about',
-  },
-  {
-    id: 4,
-    name: 'Services',
-    link: '#menu',
-  },
-]
+  { id: 1, name: "Trang chủ", link: "/" },
+  { id: 2, name: "Sản phẩm", link: "/product-list" },
+  { id: 3, name: "Tin tức", link: "/news" },
+  { id: 4, name: "Giới thiệu", link: "/about" },
+  { id: 5, name: "Liên hệ", link: "/contact" },
+];
 
 const Navbar = () => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isAuth, setIsAuth] = useState(false)
-  const dropdownRef = useRef(null)
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Check auth status on mount and when location changes
   useEffect(() => {
-    setIsAuth(isAuthenticated())
-  }, [location])
+    setIsAuth(isAuthenticated());
+    setIsMobileMenuOpen(false);
+  }, [location]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false)
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
       }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // Update auth status on storage changes (from other tabs)
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'token') {
-        setIsAuth(isAuthenticated())
-      }
-    }
-    window.addEventListener('storage', handleStorageChange)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-    }
-  }, [])
-
-  // Poll for auth changes (useful when login happens in same tab)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentAuth = isAuthenticated()
-      if (currentAuth !== isAuth) {
-        setIsAuth(currentAuth)
-      }
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [isAuth])
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
-    logout()
-    setIsAuth(false)
-    setIsDropdownOpen(false)
-    navigate('/')
-  }
+    logout();
+    setIsAuth(false);
+    setIsDropdownOpen(false);
+    navigate("/");
+  };
 
   return (
-    <div className='bg-gradient-to-r from-secondary to-secondary/90 text-white'>
-      <div className='container py-2'>
-        <div className='flex justify-between items-center gap-4'>
-          {/* logo section */}
-          <div data-aos="fade-down" data-aos-once="true">
-            <Link to='/' className='font-bold text-2xl sm:text-3xl flex justify-center items-center gap-2 tracking-wider' style={{fontFamily: 'Pacifico, cursive'}}>
-              <img src={Logo} alt="Logo" className='w-14'/>
-              Coffee E-Commerce</Link>
-          </div>
-          {/* Links section  */}
-          <div data-aos="fade-down" data-aos-once="true" data-aos-delay="300"
-            className='flex justify-between items-center gap-4'>
-            <ul className='hidden sm:flex items-center gap-4'>
-              
-              {
-                Menus.map((data, index) => (
-                  <li key={index}>
-                    <Link
-                      to={data.link}
-                      className='inline-block text-xl py-4 px-4 text-white/70 hover:text-white duration-200'
-                    >
-                      {data.name}
-                    </Link>
-                  </li>
-                ))}
-              
-              {/* <Link to="/cart" className="bg-primary/70 px-4 py-2 rounded-full hover:scale-105 duration-200 flex items-center gap-3 ">Order
-                <FaCoffee className='text-xl cursor-pointer'/></Link> */}
-              
-              {/* User Icon with Dropdown */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition duration-200 cursor-pointer"
-                  aria-label="User menu"
-                >
-                  <FaUser className="text-xl" />
-                </button>
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
 
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                    {!isAuth ? (
-                      <>
-                        <Link
-                          to="/login"
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
-                        >
-                          <FaSignInAlt /> Đăng nhập
-                        </Link>
-                        <Link
-                          to="/register"
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
-                        >
-                          <FaUserPlus /> Đăng ký
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          to="/dashboard"
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
-                        >
-                          <FaUser /> Dashboard
-                        </Link>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 transition"
-                        >
-                          <FaSignOutAlt /> Đăng xuất
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </ul>
+          {/* LOGO */}
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-xl font-bold text-black"
+            style={{ fontFamily: "Pacifico, cursive" }}
+          >
+            <img src={Logo} alt="Logo" className="w-9 h-9 object-contain" />
+            COFFEE E-COMMERCE
+          </Link>
+
+          {/* MENU DESKTOP */}
+          <ul className="hidden md:flex items-center gap-6">
+            {Menus.map((m) => (
+              <li key={m.id}>
+                <Link
+                  to={m.link}
+                  className="
+                    text-gray-700 font-medium
+                    py-2 border-b-2 border-transparent
+                    hover:text-black hover:border-red-500
+                    transition
+                  "
+                >
+                  {m.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          {/* USER */}
+          <div className="flex items-center gap-4">
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100"
+              >
+                <FaUser />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg py-2">
+                  {!isAuth ? (
+                    <>
+                      <Link
+                        to="/login"
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                      >
+                        <FaSignInAlt /> Đăng nhập
+                      </Link>
+                      <Link
+                        to="/register"
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                      >
+                        <FaUserPlus /> Đăng ký
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        to="/dashboard"
+                        className="px-4 py-2 block hover:bg-gray-100"
+                      >
+                        Dashboard
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                      >
+                        <FaSignOutAlt /> Đăng xuất
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* MOBILE BUTTON */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden text-xl"
+            >
+              {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
+            </button>
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
 
-export default Navbar
+        {/* MOBILE MENU */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-4 border-t">
+            <ul className="flex flex-col gap-4">
+              {Menus.map((m) => (
+                <li key={m.id}>
+                  <Link
+                    to={m.link}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-gray-700 hover:text-red-500"
+                  >
+                    {m.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;

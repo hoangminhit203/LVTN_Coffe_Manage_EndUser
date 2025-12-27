@@ -231,14 +231,14 @@ const CartPage = () => {
                   </div>
                   <div className="flex justify-between text-xl border-t-2 pt-4">
                     <span className="font-semibold text-gray-800">Tổng cộng:</span>
-                    <span className="text-2xl font-bold text-red-600">
+                    <span className="text-2xl font-bold text-secondary">
                       {formatPrice(cart.totalPrice)}
                     </span>
                   </div>
                 </div>
                 <button 
                   onClick={() => navigate('/checkout')}
-                  className="w-full bg-[#E40046] text-white py-3 rounded-lg font-bold hover:bg-[#c5003a] transition text-lg"
+                  className="w-full bg-secondary text-white py-3 rounded-lg font-bold hover:bg-brand-dark transition text-lg"
                 >
                   Thanh toán
                 </button>

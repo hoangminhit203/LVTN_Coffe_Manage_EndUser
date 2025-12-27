@@ -1,45 +1,65 @@
-import React from 'react'
-import HeroImg from '../../assets/HeroCoffe.png'
+import React from "react";
+
+import CoffeeMain from "../../assets/bannerCofffe.jpg";
+import Tea from "../../assets/banner1.jpg";
+import News from "../../assets/banner2.jpg";
+import About from "../../assets/banner3.jpg";
+import Contact from "../../assets/coffe-white.jpg";
 
 const Home = () => {
   return (
-    <div className='min-h-[500px] sm:min-h-[600px] bg-brand-dark flex justify-center items-center text-white overflow-hidden'>
-      <div className='container pb-8 sm:pb-0'>
-        <div className="grid grid-cols-1 sm:grid-cols-2 items-center">
-          
-          {/* Text Content Section */}
-          <div className='order-2 sm:order-1 flex flex-col justify-center gap-6'>
-            <h1 data-aos="fade-down" data-aos-once="true"
-              className="text-5xl sm:text-6xl lg:text-7xl font-bold">
-              We serve the richest{" "}
-              <span data-aos="fade-down" data-aos-once="true" data-aos-delay="300"
-                className='text-primary' style={{ fontFamily: 'Pacifico, cursive' }}>
-                coffee
-              </span>{" "}
-              in the city 
+    <div className="w-full px-6 py-6">
+      <div className="flex gap-4 h-[520px]">
+
+        {/* BANNER LỚN */}
+        <div className="w-[60%] relative rounded-xl overflow-hidden">
+          <img
+            src={CoffeeMain}
+            alt="Coffee"
+            className="w-full h-full object-cover"
+          />
+
+          {/* Text overlay */}
+          <div className="absolute inset-0 bg-black/20 flex flex-col justify-center pl-14">
+            <h1 className="text-5xl font-bold text-white mb-4 max-w-xl">
+              Thưởng thức cà phê
             </h1>
-
-            <div data-aos="fade-down" data-aos-delay="500" >
-              <button className='bg-gradient-to-r from-primary to-secondary border-2 border-primary rounded-full px-4 py-3 text-white hover:scale-105 duration-200'>
-                Coffee Best Seller            
-              </button>
-            </div>
+            <p className="text-white/90 max-w-lg mb-6">
+              Nơi cuộc hẹn trọn đầy với cà phê, món ăn nhẹ và không gian cảm hứng.
+            </p>
+            <span className="text-white border-b-2 border-red-500 w-fit cursor-pointer">
+              XEM NGAY
+            </span>
           </div>
-          
-          {/* Image Section */}
-          <div data-aos="zoom-in"
-            className='min-h-[450px] flex justify-center items-center order-1 sm:order-2 relative overflow-hidden'>
-            <img
-              src={HeroImg}
-              alt="Hero Coffee"
-              className='max-w-full w-[250px] sm:w-[380px] lg:w-[420px] h-auto object-contain mx-auto spin'
-            />
-          </div>
+        </div>
 
+        {/* 4 BANNER NHỎ (2x2) */}
+        <div className="w-[40%] grid grid-cols-2 grid-rows-2 gap-4">
+          <SmallCard img={Tea} title="Trà" desc="Không chỉ có cà phê" />
+          <SmallCard img={News} title="Tin tức" desc="Cập nhật mới nhất" />
+          <SmallCard img={About} title="Giới thiệu" desc="Chúng tôi là ai" />
+          <SmallCard img={Contact} title="Liên hệ" desc="Nhắn gì với chúng tôi" />
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Home
+const SmallCard = ({ img, title, desc }) => (
+  <div className="relative rounded-xl overflow-hidden">
+    <img
+      src={img}
+      alt={title}
+      className="w-full h-full object-cover"
+    />
+    <div className="absolute inset-0 bg-black/30 px-4 py-4 flex flex-col justify-end">
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <p className="text-sm text-white/80">{desc}</p>
+      <span className="text-sm text-white border-b border-red-500 w-fit mt-1">
+        XEM NGAY
+      </span>
+    </div>
+  </div>
+);
+
+export default Home;
