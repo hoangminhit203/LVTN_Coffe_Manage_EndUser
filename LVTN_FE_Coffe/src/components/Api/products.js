@@ -48,7 +48,16 @@ export const productApi = {
   getAll: () => api.get('/Product'),
   getById: (id) => api.get(`/Product/${id}`),
 };
-
+export const wishlistApi = {
+  add: (productId) => {
+    // productId phải khớp với tên thuộc tính trong C# WishlistCreateVModel
+    return api.post('/Wishlist', { productId: Number(productId) });
+  },
+  // Thêm hàm lấy danh sách nếu bạn cần dùng sau này
+  getAll: () => api.get('/Wishlist'),
+  // Thêm hàm xóa
+  remove: (id) => api.delete(`/Wishlist/${id}`)
+};
 // Cart API
 export const cartApi = {
   getCart: () => api.get('/Cart'),
@@ -59,7 +68,7 @@ export const cartApi = {
 
 // Order API
 export const orderApi = {
-  createOrder: (orderData) => api.post('/Order', orderData),
+  createOrder: (queryParams) => api.post(`/Order?${queryParams}`),
   getOrder: (id) => api.get(`/Order/${id}`),
 };
 
