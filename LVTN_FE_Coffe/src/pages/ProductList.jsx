@@ -1,217 +1,181 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Slider from 'react-slick';
+import axios from 'axios';
 import { productApi, cartApi } from '../components/Api/products';
-import { isAuthenticated, getUserIdFromToken } from '../utils/auth';
+import { isAuthenticated } from '../utils/auth';
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  const API_BASE = 'https://localhost:44384/api';
+
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchProducts = async () => {
+    const fetchCategories = async () => {
       try {
-        const res = await productApi.getAll();
-        if (!isMounted) return;
-
-        if (res?.isSuccess === false) {
-          throw new Error(res?.message || 'Không thể tải sản phẩm');
-        }
-
-        const list =
-          res?.data?.records ||
-          res?.records ||
-          res?.items ||
-          (Array.isArray(res) ? res : []);
-
-        setProducts(list);
+        const res = await axios.get(`${API_BASE}/Category`);
+        const data = res.data?.data?.records || [];
+        setCategories(data);
       } catch (err) {
-        if (isMounted) {
-          setError(err?.message || 'Không thể tải sản phẩm');
-          console.error('Product list load error', err);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
+        console.error('Lỗi tải danh mục:', err);
       }
     };
-
-    fetchProducts();
-    return () => {
-      isMounted = false;
-    };
+    fetchCategories();
   }, []);
 
-  const getName = (p) => p?.name || p?.productName || p?.title || 'Sản phẩm';
-  const getSku = (p) => p?.sku || p?.code || p?.productCode || p?.variants?.[0]?.sku || 'N/A';
-  const getImage = (p) => {
-    if (p?.imageUrl || p?.image || p?.thumbnail || p?.photo) return p.imageUrl || p.image || p.thumbnail || p.photo;
-    const firstVariant = p?.variants?.[0];
-    if (firstVariant?.images?.length) {
-      const img = firstVariant.images[0];
-      return typeof img === 'string' ? img : img?.url || img?.path || img?.imageUrl || null;
-    }
-    return null;
-  };
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        let res;
+        if (selectedCategory) {
+          res = await axios.get(`${API_BASE}/Product/by-category/${selectedCategory}`);
+        } else {
+          res = await productApi.getAll();
+        }
+        const responseData = res.data || res;
+        const list = responseData?.data?.records || responseData?.records || responseData?.data || [];
+        setProducts(list);
+      } catch (err) {
+        console.error('Lỗi tải sản phẩm:', err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [selectedCategory]);
 
-  const getSalePrice = (p) => p?.variants?.[0]?.price ?? p?.price ?? null;
-  const getUnitPrice = (p) => p?.variants?.[0]?.unit_price ?? p?.unit_price ?? null;
-  const getUnit = (p) => p?.unit;
-  const getVariantId = (p) => p?.variants?.[0]?.variantId ?? null;
+  const getName = (p) => p?.name || 'Sản phẩm';
+  const getPrice = (p) => p?.variants?.[0]?.price || 0;
+  const getSku = (p) => p?.variants?.[0]?.sku || 'N/A';
+  const getImage = (p) => {
+    const firstVariant = p?.variants?.[0];
+    if (firstVariant?.images?.length > 0) return firstVariant.images[0].imageUrl;
+    return 'https://via.placeholder.com/400';
+  };
   const formatPrice = (price) => {
-    if (price === null || price === undefined) return null;
-    return Number(price).toLocaleString('vi-VN') + ' đ';
+    return price > 0 ? Number(price).toLocaleString('vi-VN') + ' đ' : 'Liên hệ';
   };
 
   const handleBuyNow = async (product) => {
-    // Check if user is authenticated
     if (!isAuthenticated()) {
-      alert('Vui lòng đăng nhập để mua sản phẩm');
+      alert('Vui lòng đăng nhập để thực hiện mua hàng');
       navigate('/login');
       return;
     }
-
-    const userId = getUserIdFromToken();
-    console.log('User ID:', userId);
-
-    const variantId = getVariantId(product);
-    if (!variantId) {
-      alert('Sản phẩm không có variant');
-      return;
-    }
-
+    const variantId = product?.variants?.[0]?.variantId;
     try {
       await cartApi.addItem(variantId, 1);
       alert('Đã thêm sản phẩm vào giỏ hàng!');
-    } catch (error) {
-      console.error('Lỗi thêm vào giỏ hàng:', error);
-      alert(error?.message || 'Không thể thêm sản phẩm vào giỏ hàng');
+    } catch (err) {
+      alert('Có lỗi xảy ra: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  const renderCard = (product, idx) => {
-    const sku = getSku(product);
-    const img = getImage(product);
-    const productId = product?.productId || product?.id || product?._id;
-    
-    return (
-      <div
-        key={product?.id || product?._id || idx}
-        className="rounded-lg overflow-hidden border border-[#EAEBED] bg-white h-full flex flex-col justify-between hover:shadow-md transition-shadow"
-      >
-        <Link to={`/product/${productId}`} className="block">
-          <div className="relative w-full h-64 md:h-80 flex items-center justify-center">
-            {img ? (
-              <img
-                src={img}
-                alt={getName(product)}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-gray-400 text-sm">No image</span>
-            )}
-          </div>
-        </Link>
-
-        <div className="flex flex-col py-2 px-2 flex-grow justify-start">
-          <div className="text-left mb-auto">
-            <Link to={`/product/${productId}`}>
-              <div className="text-sm lg:text-base text-black font-medium line-clamp-2 min-h-[2.2rem] md:min-h-[2.6rem] hover:text-[#0672BA] cursor-pointer">
-                {getName(product)}
-              </div>
-            </Link>
-          </div>
-
-          <div className="py-1.5 mt-1.5">
-            <div className="text-xs text-gray-500 mb-1">SKU: {sku}</div>
-            <div className="space-y-0.5 min-h-[2.4rem] flex flex-col justify-center">
-              <p className="text-sm md:text-base leading-tight text-[#EC1C2D] font-bold">
-                {formatPrice(getSalePrice(product) ?? getUnitPrice(product)) || '—'}
-                {getUnit(product) ? ` / ${getUnit(product)}` : ''}
-              </p>
-            </div>
-
-            <div className="flex justify-between items-center mt-3 gap-1">
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  className="w-8 h-8 bg-[#0672BA] rounded-full flex justify-center items-center cursor-pointer hover:bg-opacity-90 transition-all text-white transition-transform active:scale-95"
-                  aria-label="Thêm vào yêu thích"
-                >
-                  ♥
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleBuyNow(product)}
-                className="bg-[#E40046] text-white px-3 py-2 rounded flex items-center justify-center gap-1 flex-1 md:flex-none transition-transform active:scale-95 text-xs font-bold uppercase whitespace-nowrap"
-              >
-                🛒 Mua ngay
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const bannerSettings = {
-    dots: true,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    autoplay: true,
-    autoplaySpeed: 3000,
-    pauseOnHover: true,
-    arrows: true,
-  };
-
-  const banners = [
-    {
-      id: 1,
-      image: '/src/assets/Banner1.jpg',
-      alt: 'Banner 1',
-    },
-    {
-      id: 2,
-      image: '/src/assets/Banner2.jpg',
-      alt: 'Banner 2',
-    },
-    {
-      id: 3,
-      image: '/src/assets/Banner3.jpg',
-      alt: 'Banner 3',
-    },
-  ];
-
   return (
-    <div className="product-search-container">
-      {/* Banner Carousel */}
-      <div className="w-full mb-6">
-        <Slider {...bannerSettings}>
-          {banners.map((banner) => (
-            <div key={banner.id} className="w-full">
-              <div className="w-full h-[500px] md:h-[550px] lg:h-[650px]">
-                <img
-                  src={banner.image}
-                  alt={banner.alt}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          ))}
-        </Slider>
-      </div>
+    <div className="bg-white min-h-screen py-10 font-sans">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <nav className="text-xs text-gray-400 mb-8 uppercase">
+          🏠 Trang chủ &gt; <span className="text-gray-600 font-bold">Sản phẩm</span>
+        </nav>
 
-      {/* Product List */}
-      <div className="container mx-auto px-2 md:px-4 lg:px-6 py-4">
-        <div className="grid gap-4 md:gap-6 lg:gap-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-          {products.map(renderCard)}
+        <div className="flex flex-col lg:flex-row gap-10">
+          {/* SIDEBAR */}
+          <aside className="w-full lg:w-1/4">
+            <h2 className="text-lg font-bold mb-6 text-gray-800 border-b-2 border-red-800 inline-block pb-1 uppercase">
+              Loại sản phẩm
+            </h2>
+            <div className="flex flex-col">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`text-left py-3 border-b border-gray-100 text-sm transition-colors ${
+                  selectedCategory === null ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'
+                }`}
+              >
+                Tất cả
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.categoryId}
+                  onClick={() => setSelectedCategory(cat.categoryId)}
+                  className={`text-left py-3 border-b border-gray-100 text-sm transition-colors ${
+                    selectedCategory === cat.categoryId ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          {/* MAIN CONTENT */}
+          <main className="flex-1">
+            <h2 className="text-2xl font-bold mb-10 text-gray-900 uppercase">
+              Danh sách sản phẩm
+              {selectedCategory && (
+                <span className="text-red-800"> : {categories.find(c => c.categoryId === selectedCategory)?.name}</span>
+              )}
+            </h2>
+
+            {loading ? (
+              <div className="text-center py-20 text-gray-400 font-medium">Đang tải...</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {products.map((p) => (
+                  <div key={p.productId} className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col hover:shadow-lg transition-all duration-300 group">
+                    
+                    {/* PHẦN ẢNH - BỎ PADDING ĐỂ FULL KHUNG */}
+                    <Link 
+                      to={`/product/${p.productId}`} 
+                      className="block w-full aspect-square relative bg-white border-b border-gray-100 overflow-hidden"
+                    >
+                      <img 
+                        src={getImage(p)} 
+                        alt={getName(p)} 
+                        className="w-full h-full object-cover transition duration-500 group-hover:scale-110" 
+                      />
+                    </Link>
+
+                    {/* PHẦN NỘI DUNG */}
+                    <div className="p-5 flex flex-col flex-grow">
+                      <Link to={`/product/${p.productId}`}>
+                        <h4 className="text-sm font-semibold text-gray-800 hover:text-red-700 line-clamp-2 mb-2 h-10 leading-tight">
+                          {getName(p)}
+                        </h4>
+                      </Link>
+                      
+                      <div className="mt-auto">
+                        <div className="text-[11px] text-gray-400 mb-1 tracking-tight">SKU: {getSku(p)}</div>
+                        <p className="text-lg font-extrabold text-red-600 mb-5">
+                          {formatPrice(getPrice(p))}
+                        </p>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="w-11 h-11 flex items-center justify-center rounded-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-colors"
+                          >
+                            <span className="text-2xl leading-none">♥</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleBuyNow(p)}
+                            className="flex-1 bg-[#E40046] text-white h-11 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-95 text-xs font-bold uppercase tracking-wider"
+                          >
+                            <span className="text-lg">🛒</span> Mua ngay
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </main>
         </div>
       </div>
     </div>

@@ -119,7 +119,7 @@ const ProductDetailPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Left Section - Product Image */}
         <div className="w-full">
-          <div className="w-full h-[500px] md:h-[600px] rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+          <div className="w-full h-[320px] sm:h-[420px] md:h-[520px] rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
             {image ? (
               <img
                 src={image}
@@ -139,7 +139,7 @@ const ProductDetailPage = () => {
           </h1>
 
           <div className="mb-6">
-            <p className="text-2xl md:text-3xl font-bold text-orange-500">
+            <p className="text-2xl md:text-3xl font-bold text-primary">
               {formatPrice(price)}
             </p>
           </div>
@@ -186,9 +186,9 @@ const ProductDetailPage = () => {
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition-colors"
+            className="w-full md:w-auto bg-secondary hover:bg-brand-dark text-white font-bold py-3 px-8 rounded-lg transition-colors"
           >
-            Add to Cart
+            Thêm vào giỏ hàng
           </button>
         </div>
       </div>

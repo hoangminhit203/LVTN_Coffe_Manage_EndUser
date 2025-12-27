@@ -294,7 +294,7 @@ const CheckoutPage = () => {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !formData.shippingAddress.trim()}
-                className="w-full mt-6 bg-[#E40046] text-white py-3 rounded-lg font-bold hover:bg-[#c5003a] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-6 bg-secondary text-white py-3 rounded-lg font-bold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Đang xử lý...' : 'Đặt hàng'}
               </button>
