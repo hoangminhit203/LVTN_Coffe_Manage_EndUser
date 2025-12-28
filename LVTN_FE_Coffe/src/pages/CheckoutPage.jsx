@@ -74,12 +74,13 @@ const CheckoutPage = () => {
 
     try {
       // 1. Tạo đơn hàng (Lấy orderId từ Backend)
-      const params = new URLSearchParams();
-      params.append('ShippingMethod', formData.shippingMethod);
-      params.append('ShippingAddress', formData.shippingAddress);
+      const orderData = {
+        shippingMethod: formData.shippingMethod,
+        shippingAddress: formData.shippingAddress,
+      };
       
-      const orderRes = await orderApi.createOrder(params.toString());
-      const orderId = orderRes.orderId || orderRes.id || orderRes;
+      const orderRes = await orderApi.createOrder(orderData);
+      const orderId = orderRes?.data?.orderId || orderRes?.orderId || orderRes?.id || orderRes;
 
       // 2. Xử lý theo phương thức thanh toán
       if (paymentMethod === 'VNPAY') {

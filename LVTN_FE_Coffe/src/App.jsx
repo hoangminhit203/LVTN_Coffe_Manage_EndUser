@@ -19,6 +19,7 @@ import DashboardPage from './pages/DashboardPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import PaymentCallback from './pages/PaymentCallback';
+import ProfilePage from './pages/ProfilePage';
 
 const App = () => {
   useEffect(() => {
@@ -43,6 +44,7 @@ const App = () => {
         <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
