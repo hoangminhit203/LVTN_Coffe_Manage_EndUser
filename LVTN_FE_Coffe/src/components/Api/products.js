@@ -101,7 +101,11 @@ export const newsApi = {
   getAll: () => api.get("/News"),
 }
 export const paymentApi = {
-  createVnPayUrl: (orderId) => api.post(`/Payment?orderId=${orderId}`),
-  verifyCallback: (queryString) => api.get(`/Payment${queryString}`),
+  createVnPayUrl: async (orderId) => {
+    const response = await api.post(`/Payment/create-vnpay-url/${orderId}`)
+    return response.paymentUrl || response.data?.paymentUrl || response
+  },
+  verifyCallback: (queryString) =>
+    api.get(`/Payment/vnpay-callback${queryString}`),
 }
 export default api
