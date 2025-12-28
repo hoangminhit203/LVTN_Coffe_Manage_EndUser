@@ -18,6 +18,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import PaymentCallback from './pages/PaymentCallback';
 
 const App = () => {
   useEffect(() => {
@@ -45,6 +46,7 @@ const App = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment-callback" element={<PaymentCallback />} />
       </Routes>
       <Footer />
     </div>

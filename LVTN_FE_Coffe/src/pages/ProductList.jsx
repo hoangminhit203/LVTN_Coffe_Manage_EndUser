@@ -14,7 +14,6 @@ const ProductList = () => {
 
   const API_BASE = 'https://localhost:44384/api';
 
-  // --- HÀM XỬ LÝ THÊM VÀO YÊU THÍCH ---
   const handleAddToWishlist = async (productId) => {
     if (!isAuthenticated()) {
       alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
