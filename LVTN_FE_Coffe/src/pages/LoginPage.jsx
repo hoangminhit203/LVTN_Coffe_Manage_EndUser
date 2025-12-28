@@ -27,7 +27,6 @@ const LoginPage = () => {
     try {
       const res = await userApi.login({ email, password });
 
-      // Try to pick token/user from common response shapes
       const token = res?.token || res?.data?.token || res?.accessToken;
       const user = res?.user || res?.data?.user;
 

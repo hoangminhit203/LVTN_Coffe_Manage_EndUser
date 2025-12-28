@@ -1,7 +1,6 @@
-// Base API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44384/api';
 
-// Helper to perform API calls with auth token and JSON handling
+
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
 
@@ -31,7 +30,7 @@ const apiRequest = async (endpoint, options = {}) => {
   return data;
 };
 
-// General methods
+
 const api = {
   get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
   post: (endpoint, body) =>
@@ -43,38 +42,70 @@ const api = {
   delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
 };
 
-// Product API using backend routes /Product and /Product/{id}
+
 export const productApi = {
   getAll: () => api.get('/Product'),
   getById: (id) => api.get(`/Product/${id}`),
 };
 export const wishlistApi = {
   add: (productId) => {
-    // productId phải khớp với tên thuộc tính trong C# WishlistCreateVModel
+
     return api.post('/Wishlist', { productId: Number(productId) });
   },
-  // Thêm hàm lấy danh sách nếu bạn cần dùng sau này
+
   getAll: () => api.get('/Wishlist'),
-  // Thêm hàm xóa
   remove: (id) => api.delete(`/Wishlist/${id}`)
 };
-// Cart API
+
 export const cartApi = {
   getCart: () => api.get('/Cart'),
-  addItem: (productVariantId, quantity = 1) =>
-    api.post('/CartItems', { productVariantId, quantity }),
-  clearCart: () => api.post('/Cart/clear'),
+
+  addItem: async (productVariantId, quantity = 1) => {
+    const res = await api.post('/CartItems', {
+      productVariantId,
+      quantity,
+    });
+
+    // 🔔 BÁO CHO NAVBAR & TOÀN APP
+    window.dispatchEvent(new Event("cartUpdated"));
+
+    return res;
+  },
+
+  clearCart: async () => {
+    const res = await api.post('/Cart/clear');
+    window.dispatchEvent(new Event("cartUpdated"));
+    return res;
+  },
+
+  removeItem: async (itemId) => {
+    const res = await api.delete(`/CartItems/${itemId}`);
+    window.dispatchEvent(new Event("cartUpdated"));
+    return res;
+  },
+
+  updateQuantity: async (cartItemId, quantity) => {
+    const res = await api.put('/CartItems', {
+      cartItemId: Number(cartItemId),
+      quantity: Number(quantity),
+    });
+
+    window.dispatchEvent(new Event("cartUpdated"));
+    return res;
+  },
 };
 
-// Order API
+
 export const orderApi = {
   createOrder: (queryParams) => api.post(`/Order?${queryParams}`),
   getOrder: (id) => api.get(`/Order/${id}`),
 };
 
-// News API (simple wrapper; backend must expose /News)
 export const newsApi = {
   getAll: () => api.get('/News'),
 };
-
+export const paymentApi = {
+  createVnPayUrl: (orderId) => api.post(`/Payment?orderId=${orderId}`),
+  verifyCallback: (queryString) => api.get(`/Payment${queryString}`),
+};
 export default api;
