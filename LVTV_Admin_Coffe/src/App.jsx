@@ -9,6 +9,7 @@ import FlavorNotePage from "@/routes/flavorNote/page";
 import BrewingMethodPage from "@/routes/brewingmethod/page";
 import ProductPage from "@/routes/product/page";
 import NewProduct from "@/components/product/NewProduct";
+import EditProduct from "@/components/product/EditProduct";
 import NotFoundPage from "@/routes/not-found/page";
 
 function App() {
@@ -64,7 +65,7 @@ function App() {
              
                 {
                     path: "products/edit/:id",
-                    element: <h1 className="title">Edit Product</h1>,
+                    element: <EditProduct />,
                 },
                 {
                     path: "inventory",

@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import toast from "react-hot-toast";
-import { Package, Save, Plus, Trash2, X, CheckCircle } from "lucide-react"; // Nhớ cài: npm install lucide-react
+import { Package, Save, Plus, Trash2, X, CheckCircle, Loader2 } from "lucide-react";
 
 // --- IMPORTS SERVICES ---
-import { createProduct, uploadProductImages } from "../../service/productService";
+import { getProductById, updateProduct, uploadProductImages } from "../../service/productService";
 import { getCategories } from "../../service/categoryService";
 import { getFlavorNotes } from "../../service/flavorNoteService";
 import { getBrewingMethods } from "../../service/brewingMethodsService";
 
 // --- IMPORTS COMPONENTS & HOOKS ---
-import ProductImages from "./ProductImages"; // Đảm bảo đường dẫn đúng
-import { useFormFields } from "../../hooks/useFormFields"; // Đảm bảo đường dẫn đúng
+import ProductImages from "./ProductImages";
+import { useFormFields } from "../../hooks/useFormFields";
 
-const NewProduct = () => {
+const EditProduct = () => {
   const navigate = useNavigate();
+  const { id } = useParams(); // Lấy productId từ URL
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
 
   // 1. Setup Form
@@ -26,6 +28,7 @@ const NewProduct = () => {
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -34,19 +37,7 @@ const NewProduct = () => {
       categoryId: "",
       flavorNoteIds: [],
       brewingMethodIds: [],
-      variants: [
-        {
-          sku: "",
-          price: 0,
-          stock: 0,
-          roastLevel: "Medium",
-          beanType: "",
-          origin: "",
-          acidity: 5,
-          weight: 0,
-          certifications: "",
-        },
-      ],
+      variants: [],
     },
   });
 
@@ -65,6 +56,10 @@ const NewProduct = () => {
   const [images, setImages] = useState([]);
   const [imageErrors, setImageErrors] = useState({});
 
+  // State lưu thông tin product hiện tại
+  const [currentProduct, setCurrentProduct] = useState(null);
+  const [currentVariantId, setCurrentVariantId] = useState(null);
+
   // 4. Lấy config từ hook
   const { formFields, variantFields, getFieldClassName, getFieldError } =
     useFormFields({
@@ -73,13 +68,20 @@ const NewProduct = () => {
       categories,
       flavorNotes,
       brewingMethods,
-      isEditing: false,
+      isEditing: true,
     });
 
   // 5. Load Data Init
   useEffect(() => {
     loadInitData();
   }, []);
+
+  // 6. Load Product Data
+  useEffect(() => {
+    if (id) {
+      loadProductData();
+    }
+  }, [id]);
 
   const loadInitData = async () => {
     try {
@@ -89,11 +91,10 @@ const NewProduct = () => {
         getBrewingMethods({ pageSize: 100 }),
       ]);
 
-      // Helper để lấy đúng mảng dữ liệu từ API (records hoặc items)
       const getItems = (res) => {
         if (!res) return [];
-        if (res.data && res.data.records) return res.data.records; // Ưu tiên records
-        if (res.data && res.data.items) return res.data.items;     // Fallback items
+        if (res.data && res.data.records) return res.data.records;
+        if (res.data && res.data.items) return res.data.items;
         if (Array.isArray(res.data)) return res.data;
         return [];
       };
@@ -107,16 +108,54 @@ const NewProduct = () => {
     }
   };
 
-  // 6. Xử lý Submit
-  const onSubmit = async (data) => {
-    if (images.length === 0) {
-      toast.error("Vui lòng thêm ít nhất 1 ảnh sản phẩm");
-      return;
-    }
+  const loadProductData = async () => {
+    try {
+      setIsLoadingData(true);
+      const res = await getProductById(id);
+      
+      if (res.isSuccess && res.data) {
+        const product = res.data;
+        setCurrentProduct(product);
 
+        // Set form values
+        reset({
+          name: product.name || "",
+          description: product.description || "",
+          categoryId: product.category?.[0]?.categoryId?.toString() || "",
+          flavorNoteIds: product.flavorNotes?.map(fn => fn.flavorNoteId) || [],
+          brewingMethodIds: product.brewingMethods?.map(bm => bm.brewingMethodId) || [],
+          variants: product.variants?.map(v => ({
+            variantId: v.variantId,
+            sku: v.sku || "",
+            price: v.price || 0,
+            stock: v.stock || 0,
+            roastLevel: v.roastLevel || "Medium",
+            beanType: v.beanType || "",
+            origin: v.origin || "",
+            acidity: v.acidity || 5,
+            weight: v.weight || 0,
+            certifications: v.certifications || "",
+          })) || [],
+        });
+
+        // Set variant ID đầu tiên (để load images)
+        if (product.variants && product.variants.length > 0) {
+          setCurrentVariantId(product.variants[0].variantId);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading product:", error);
+      toast.error("Không thể tải thông tin sản phẩm");
+      navigate("/products");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  // 7. Xử lý Submit
+  const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      // Hàm clean data để tránh lỗi .map
       const parseIds = (val) => {
          if (Array.isArray(val)) return val.map(Number);
          return [];
@@ -129,6 +168,7 @@ const NewProduct = () => {
         flavorNoteIds: parseIds(data.flavorNoteIds),
         brewingMethodIds: parseIds(data.brewingMethodIds),
         variants: data.variants.map((v) => ({
+          variantId: v.variantId, // Giữ variantId để update
           sku: v.sku,
           price: Number(v.price),
           stock: Number(v.stock),
@@ -141,53 +181,38 @@ const NewProduct = () => {
         })),
       };
 
-      // console.log("Payload:", payload);
-
-      const res = await createProduct(payload);
+      const res = await updateProduct(id, payload);
 
       if (res.isSuccess) {
-        const newProductId = res.data.productId;
-        // Lấy ID variant đầu tiên an toàn
-        const firstVariantId = res.data.variants && res.data.variants.length > 0 
-            ? res.data.variants[0].variantId 
-            : null;
-
-        if (firstVariantId) {
-            const filesToUpload = images.filter((img) => img.file).map((img) => img.file);
-            if (filesToUpload.length > 0) {
-                await uploadProductImages(newProductId, firstVariantId, filesToUpload);
-            }
+        // Upload images mới nếu có
+        if (images.length > 0 && currentVariantId) {
+          const filesToUpload = images.filter((img) => img.file).map((img) => img.file);
+          if (filesToUpload.length > 0) {
+            await uploadProductImages(id, currentVariantId, filesToUpload);
+          }
         }
         
-        // Show success notification
         setShowSuccessNotification(true);
         
-        // Navigate after 2 seconds
         setTimeout(() => {
           navigate("/products");
         }, 2000);
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Tạo sản phẩm thất bại");
+      toast.error(err.response?.data?.message || "Cập nhật sản phẩm thất bại");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 7. Hàm Render Input (Quan trọng: Xử lý Combobox-Multi)
+  // 8. Hàm Render Input
   const renderInput = (fieldConfig, fieldPath) => {
     const { type, options, optionKey, optionValue, inputType, rows, placeholder } = fieldConfig;
     const baseClass = getFieldClassName(fieldPath);
 
-    // --- XỬ LÝ COMBOBOX MULTI (Dropdown + Tags) ---
     if (type === "combobox-multi") {
         const selectedIds = watch(fieldPath) || [];
-
-        // Đăng ký field với form (để khi submit có dữ liệu)
-        useEffect(() => {
-            register(fieldPath);
-        }, [register, fieldPath]);
 
         const handleSelect = (e) => {
             const val = Number(e.target.value);
@@ -195,7 +220,7 @@ const NewProduct = () => {
             if (!selectedIds.includes(val)) {
                 setValue(fieldPath, [...selectedIds, val]);
             }
-            e.target.value = ""; // Reset dropdown
+            e.target.value = "";
         };
 
         const handleRemove = (idToRemove) => {
@@ -236,7 +261,6 @@ const NewProduct = () => {
         );
     }
 
-    // --- XỬ LÝ CÁC LOẠI INPUT KHÁC ---
     if (type === "textarea") {
         return <textarea {...register(fieldPath)} className={baseClass} rows={rows} placeholder={placeholder} />;
     }
@@ -254,9 +278,19 @@ const NewProduct = () => {
         );
     }
 
-    // Input thường (text, number)
     return <input type={inputType} {...register(fieldPath, fieldConfig.rules)} className={baseClass} placeholder={placeholder} />;
   };
+
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 dark:bg-gray-900">
@@ -267,7 +301,7 @@ const NewProduct = () => {
             <CheckCircle size={24} />
             <div>
               <p className="font-semibold text-lg">Thành công!</p>
-              <p className="text-sm">Sản phẩm đã được tạo thành công</p>
+              <p className="text-sm">Sản phẩm đã được cập nhật thành công</p>
             </div>
           </div>
         </div>
@@ -279,8 +313,8 @@ const NewProduct = () => {
             <Package className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tạo sản phẩm mới</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Điền thông tin chi tiết sản phẩm</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Chỉnh sửa sản phẩm</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Cập nhật thông tin sản phẩm</p>
           </div>
         </div>
 
@@ -308,7 +342,7 @@ const NewProduct = () => {
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Danh sách biến thể</h2>
                 <button
                     type="button"
-                    onClick={() => append({ sku: "", price: 0, stock: 0 })}
+                    onClick={() => append({ sku: "", price: 0, stock: 0, roastLevel: "Medium", beanType: "", origin: "", acidity: 5, weight: 0, certifications: "" })}
                     className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
                 >
                     <Plus className="h-4 w-4" /> Thêm biến thể
@@ -351,25 +385,32 @@ const NewProduct = () => {
           <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
             <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-100 border-b pb-2">Hình ảnh sản phẩm</h2>
             <ProductImages
-              productId={null}
-              variantId={null}
+              productId={id}
+              variantId={currentVariantId}
               images={images}
               setImages={setImages}
               imageErrors={imageErrors}
               setImageErrors={setImageErrors}
               watch={watch}
-              isEditing={false}
+              isEditing={true}
             />
           </div>
 
           {/* --- SUBMIT --- */}
-          <div className="flex justify-end pt-4 pb-10">
+          <div className="flex justify-end gap-3 pt-4 pb-10">
+            <button
+              type="button"
+              onClick={() => navigate("/products")}
+              className="flex min-w-[120px] items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-6 py-3 text-gray-800 dark:text-gray-200 font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+            >
+              Hủy
+            </button>
             <button
               type="submit"
               disabled={isLoading}
               className="flex min-w-[150px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-white font-medium shadow-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
-              {isLoading ? "Đang xử lý..." : <><Save className="h-5 w-5" /> Tạo sản phẩm</>}
+              {isLoading ? "Đang xử lý..." : <><Save className="h-5 w-5" /> Cập nhật sản phẩm</>}
             </button>
           </div>
 
@@ -379,4 +420,4 @@ const NewProduct = () => {
   );
 };
 
-export default NewProduct;
+export default EditProduct;
