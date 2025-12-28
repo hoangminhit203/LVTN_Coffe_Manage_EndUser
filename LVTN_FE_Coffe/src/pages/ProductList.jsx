@@ -110,7 +110,7 @@ const ProductList = () => {
             <div className="flex flex-col">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={`text-left py-3 border-b border-gray-100 text-sm transition-colors ${
+                className={`text-left py-3 border-b border-gray-100 text-sm transition-colors  cursor-pointer ${
                   selectedCategory === null ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'
                 }`}
               >
@@ -120,7 +120,7 @@ const ProductList = () => {
                 <button
                   key={cat.categoryId}
                   onClick={() => setSelectedCategory(cat.categoryId)}
-                  className={`text-left py-3 border-b border-gray-100 text-sm transition-colors ${
+                  className={`text-left py-3 border-b border-gray-100 text-sm transition-colors cursor-pointer ${
                     selectedCategory === cat.categoryId ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'
                   }`}
                 >
