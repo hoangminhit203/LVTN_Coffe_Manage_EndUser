@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getProducts, deleteProduct, searchProducts } from "../../service/productService"; // Import searchProducts
 import Pagination from "../../components/pagination/Pagination"; // Import Pagination component
+import VariantViewDialog from "../../components/product/variant-view-dialog"; // Import VariantViewDialog
 
 const ProductManagement = () => {
     const navigate = useNavigate();
@@ -13,6 +14,12 @@ const ProductManagement = () => {
     // State cho tìm kiếm
     const [searchTerm, setSearchTerm] = useState("");
     const [isSearching, setIsSearching] = useState(false);
+
+    // State cho variant dialog
+    const [variantDialog, setVariantDialog] = useState({
+        show: false,
+        data: null,
+    });
 
     const [paging, setPaging] = useState({
         pageNumber: 1,
@@ -110,8 +117,23 @@ const ProductManagement = () => {
         return new Date(dateString).toLocaleDateString("vi-VN");
     };
 
+    // Handler: Mở dialog xem variant details
+    const handleViewVariant = (variant) => {
+        setVariantDialog({
+            show: true,
+            data: variant,
+        });
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 font-sans">
+            {/* Variant View Dialog */}
+            <VariantViewDialog
+                open={variantDialog.show}
+                onClose={() => setVariantDialog({ show: false, data: null })}
+                variant={variantDialog.data}
+            />
+
             <div className="mx-auto max-w-7xl space-y-6">
                 
                 {/* --- HEADER SECTION --- */}
@@ -253,9 +275,17 @@ const ProductManagement = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <span className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-500/10 dark:ring-gray-600/30">
-                                                        {product.variants?.length || 0} variants
-                                                    </span>
+                                                    {product.variants && product.variants.length > 0 ? (
+                                                        <button
+                                                            onClick={() => handleViewVariant(product.variants[0])}
+                                                            className="inline-flex items-center rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-3 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-400/30 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5 mr-1" />
+                                                            {product.variants.length} variants
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-400 dark:text-gray-500 italic text-xs">--</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                                     {formatDate(product.createdAt)}

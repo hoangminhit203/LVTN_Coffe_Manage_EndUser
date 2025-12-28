@@ -98,29 +98,46 @@ export const getProductsByCategory = async (categoryId, page = 1, pageSize = 10)
 // Upload hình ảnh cho product variant
 export const uploadProductImages = async (productId, variantId, imageFiles) => {
     try {
-        const formData = new FormData();
-
-        // Thêm các file ảnh vào FormData
-        if (Array.isArray(imageFiles)) {
-            imageFiles.forEach((file, index) => {
-                formData.append("images", file);
-            });
-        } else {
-            formData.append("images", imageFiles);
+        if (!imageFiles || (Array.isArray(imageFiles) && imageFiles.length === 0)) {
+            return;
         }
 
-        const response = await axiosClient.post(`/Product/${productId}/variant/${variantId}/images`, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
+        const filesArray = Array.isArray(imageFiles) ? imageFiles : [imageFiles];
+
+        // Tạo mảng Promise để upload nhiều ảnh song song
+        const uploadPromises = filesArray.map((file, index) => {
+            const formData = new FormData();
+
+            // --- QUAN TRỌNG: Khớp tên biến với Model C# ---
+            formData.append("File", file); // Backend: public IFormFile? File
+            formData.append("ProductId", productId); // Backend: public int? ProductId
+
+            if (variantId) {
+                formData.append("ProductVariantId", variantId); // Backend: public int? ProductVariantId
+            }
+
+            formData.append("IsMain", index === 0);
+            formData.append("SortOrder", index);
+
+            // --- GỌI API ---
+            // Lưu ý: Tuỳ vào setup axiosClient của bạn
+            // Nếu axiosClient.baseURL = 'https://localhost:44384', thì dùng dòng dưới:
+            return axiosClient.post("/Image/product-images", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            // *Lưu ý*: Nếu axiosClient.baseURL đã có sẵn '/api' (VD: https://localhost:44384/api),
+            // thì bạn chỉ cần truyền '/Image/product-images'
         });
-        return response.data;
+
+        const responses = await Promise.all(uploadPromises);
+        return responses.map((res) => res.data);
     } catch (error) {
         console.error("Error uploading product images:", error);
         throw error;
     }
 };
-
 // Lấy danh sách hình ảnh của product variant (trả về full response với totalRecords)
 export const getProductImages = async (productId, variantId) => {
     try {
