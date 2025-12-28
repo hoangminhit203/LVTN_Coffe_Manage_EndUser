@@ -36,8 +36,23 @@ const LoginPage = () => {
         console.log('User ID from token:', userId);
       }
       
+      // Lưu thông tin user vào localStorage
       if (user) {
         localStorage.setItem('user', JSON.stringify(user));
+      }
+
+      // Fetch thông tin user từ API /Auth/Me nếu chưa có user
+      if (!user && token) {
+        try {
+          const meResponse = await userApi.me();
+          // API trả về { isSuccess, message, data }
+          const userData = meResponse?.data?.data || meResponse?.data || meResponse;
+          if (userData) {
+            localStorage.setItem('user', JSON.stringify(userData));
+          }
+        } catch (meErr) {
+          console.error('Error fetching user info:', meErr);
+        }
       }
 
       setMessage('Đăng nhập thành công');

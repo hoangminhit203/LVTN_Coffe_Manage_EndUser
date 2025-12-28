@@ -10,8 +10,9 @@ import {
   FaTimes,
   FaShoppingCart,
 } from "react-icons/fa";
-import { isAuthenticated, logout } from "../../utils/auth";
+import { isAuthenticated, logout, getUserFromToken } from "../../utils/auth";
 import { cartApi } from "../Api/products";
+import { userApi } from "../Api/user";
 
 const Menus = [
   { id: 1, name: "Trang chủ", link: "/" },
@@ -26,6 +27,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [userName, setUserName] = useState("");
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,7 +53,34 @@ const Navbar = () => {
     setIsAuth(isAuthenticated());
     setIsMobileMenuOpen(false);
     fetchCartCount();
+    
+    // Lấy username từ API hoặc token
+    if (isAuthenticated()) {
+      fetchUserName();
+    } else {
+      setUserName("");
+    }
   }, [location]);
+
+  // Hàm lấy username từ API
+  const fetchUserName = async () => {
+    try {
+      const response = await userApi.me();
+      // API trả về { isSuccess, message, data }
+      const userData = response?.data?.data || response?.data || response;
+      // Hiển thị firstName + lastName nếu có, nếu không thì userName
+      const displayName = userData?.firstName && userData?.lastName 
+        ? `${userData.firstName} ${userData.lastName}` 
+        : userData?.userName || userData?.email?.split('@')[0] || "User";
+      setUserName(displayName);
+    } catch (err) {
+      console.error("Lỗi lấy thông tin user:", err);
+      // Fallback: lấy từ token nếu API thất bại
+      const tokenData = getUserFromToken();
+      const emailFromToken = tokenData?.email || tokenData?.unique_name;
+      setUserName(emailFromToken?.split('@')[0] || "User");
+    }
+  };
 
   // Lắng nghe sự kiện "cartUpdated" TỰ ĐỘNG (Không cần reload)
   useEffect(() => {
@@ -76,6 +105,7 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     setIsAuth(false);
+    setUserName("");
     setIsDropdownOpen(false);
     setCartCount(0);
     navigate("/");
@@ -146,6 +176,14 @@ const Navbar = () => {
                     </>
                   ) : (
                     <>
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {userName || "User"}
+                        </p>
+                      </div>
+                      <Link to="/profile" className="px-4 py-2 block hover:bg-gray-50 text-sm text-gray-700 font-medium">
+                        Thông tin cá nhân
+                      </Link>
                       <Link to="/dashboard" className="px-4 py-2 block hover:bg-gray-50 text-sm text-gray-700 font-medium">
                         Đơn hàng của tôi
                       </Link>
