@@ -36,7 +36,7 @@ const DashboardPage = () => {
               {/* Filter: Đơn hàng */}
               <button 
                 onClick={() => setActiveTab("orders")}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl mb-2 transition-all ${
+                className={`w-full flex items-center justify-between p-4 rounded-2xl mb-2 transition-all cursor-pointer ${
                   activeTab === 'orders' 
                   ? 'bg-blue-50 text-blue-600 font-bold shadow-sm' 
                   : 'text-gray-500 hover:bg-gray-50'
@@ -49,7 +49,7 @@ const DashboardPage = () => {
               {/* Filter: Giỏ hàng */}
               <button 
                 onClick={() => setActiveTab("cart")}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl mb-2 transition-all ${
+                className={`w-full flex items-center justify-between p-4 rounded-2xl mb-2 transition-all cursor-pointer ${
                   activeTab === 'cart' 
                   ? 'bg-blue-50 text-blue-600 font-bold shadow-sm' 
                   : 'text-gray-500 hover:bg-gray-50'

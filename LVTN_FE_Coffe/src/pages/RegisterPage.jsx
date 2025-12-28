@@ -8,8 +8,7 @@ const RegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    fullName: '',
-    phone: '',
+  
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,8 +35,8 @@ const RegisterPage = () => {
     }
 
     try {
-      const { confirmPassword, ...registerData } = formData;
-      const res = await userApi.register(registerData);
+      
+      const res = await userApi.register(formData);
 
       const token = res?.token || res?.data?.token || res?.accessToken;
       const user = res?.user || res?.data?.user;
@@ -64,20 +63,7 @@ const RegisterPage = () => {
       <div className="w-full max-w-md bg-white shadow rounded-lg p-6">
         <h1 className="text-xl font-semibold mb-4 text-center">Đăng ký</h1>
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Họ và tên
-            </label>
-            <input
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nguyễn Văn A"
-            />
-          </div>
+       
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -92,20 +78,7 @@ const RegisterPage = () => {
               placeholder="you@example.com"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Số điện thoại
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0123456789"
-            />
-          </div>
+       
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Mật khẩu
