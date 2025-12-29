@@ -6,7 +6,8 @@ import shippingAddressApi from '../components/Api/ShippingAddress';
 import { isAuthenticated } from '../utils/auth';
 import { 
   FaTruck, FaMapMarkerAlt, FaCreditCard, FaChevronLeft, 
-  FaShoppingBag, FaMoneyBillWave, FaEnvelope, FaUser, FaPhone 
+  FaShoppingBag, FaMoneyBillWave, FaEnvelope, FaUser, FaPhone,
+  FaPlus, FaEdit, FaTrash, FaTimes, FaSave 
 } from 'react-icons/fa';
 
 const CheckoutPage = () => {
@@ -19,6 +20,7 @@ const CheckoutPage = () => {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [shippingFee, setShippingFee] = useState(30000);
   const [note, setNote] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
   
   // State dành cho khách vãng lai (Guest) thêm trường Email
   const [guestInfo, setGuestInfo] = useState({
@@ -26,6 +28,17 @@ const CheckoutPage = () => {
     phone: '',
     email: '', // Thêm email ở đây
     address: ''
+  });
+
+  // State quản lý modal địa chỉ
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [addressFormMode, setAddressFormMode] = useState('add'); // 'add' hoặc 'edit'
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [addressForm, setAddressForm] = useState({
+    receiverName: '',
+    phone: '',
+    fullAddress: '',
+    isDefault: false
   });
 
   const navigate = useNavigate();
@@ -64,6 +77,75 @@ const CheckoutPage = () => {
     } catch (err) { console.error(err); }
   };
 
+  // Mở modal thêm địa chỉ mới
+  const openAddAddressModal = () => {
+    setAddressFormMode('add');
+    setAddressForm({
+      receiverName: '',
+      phone: '',
+      fullAddress: '',
+      isDefault: false
+    });
+    setShowAddressModal(true);
+  };
+
+  // Mở modal sửa địa chỉ
+  const openEditAddressModal = (address) => {
+    setAddressFormMode('edit');
+    setEditingAddressId(address.id);
+    setAddressForm({
+      receiverName: address.receiverName,
+      phone: address.phone,
+      fullAddress: address.fullAddress,
+      isDefault: address.isDefault
+    });
+    setShowAddressModal(true);
+  };
+
+  // Lưu địa chỉ (thêm hoặc sửa)
+  const handleSaveAddress = async () => {
+    if (!addressForm.receiverName || !addressForm.phone || !addressForm.fullAddress) {
+      alert('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    try {
+      if (addressFormMode === 'add') {
+        await shippingAddressApi.create(addressForm);
+      } else {
+        await shippingAddressApi.update(editingAddressId, addressForm);
+      }
+      fetchAddresses();
+      setShowAddressModal(false);
+    } catch (err) {
+      alert('Lỗi khi lưu địa chỉ: ' + (err.message || 'Vui lòng thử lại'));
+    }
+  };
+
+  // Xóa địa chỉ
+  const handleDeleteAddress = async (id) => {
+    if (!confirm('Bạn có chắc muốn xóa địa chỉ này?')) return;
+    
+    try {
+      await shippingAddressApi.delete(id);
+      fetchAddresses();
+      if (selectedAddressId === id) setSelectedAddressId(null);
+    } catch (err) {
+      alert('Lỗi khi xóa địa chỉ: ' + (err.message || 'Vui lòng thử lại'));
+    }
+  };
+
+  // Đặt địa chỉ làm mặc định
+  const handleSetDefaultAddress = async (id) => {
+    try {
+      await shippingAddressApi.setDefault(id);
+      fetchAddresses();
+      setSelectedAddressId(id);
+    } catch (err) {
+      alert('Lỗi khi đặt địa chỉ mặc định');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -80,21 +162,48 @@ const CheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      const orderData = {
-        // Nếu là Member gửi ID, nếu là Guest gửi thông tin trực tiếp
-        shippingAddressId: isUser ? selectedAddressId : null,
-        receiverName: isUser ? null : guestInfo.receiverName,
-        receiverPhone: isUser ? null : guestInfo.phone,
-        receiverEmail: isUser ? null : guestInfo.email, // Gửi email xuống backend
-        shippingAddress: isUser ? null : guestInfo.address, 
+      let orderData = {};
+      
+      if (isUser) {
+        // Lấy thông tin địa chỉ đã chọn
+        const selectedAddress = addresses.find(addr => addr.id === selectedAddressId);
+        if (!selectedAddress) {
+          setError('Không tìm thấy địa chỉ đã chọn');
+          setSubmitting(false);
+          return;
+        }
         
-        shippingMethod: 'GHTK',
-        note: note,
-        orderItems: cart.items.map(item => ({
-          productVariantId: item.productVariantId || item.id,
-          quantity: item.quantity
-        }))
-      };
+        orderData = {
+          shippingAddressId: selectedAddressId,
+          receiverName: selectedAddress.receiverName,
+          receiverPhone: selectedAddress.phone,
+          receiverEmail: selectedAddress.email || '', // Lấy email từ địa chỉ
+          shippingAddress: selectedAddress.fullAddress,
+          shippingMethod: 'GHTK',
+          voucherCode: voucherCode || null,
+          note: note,
+          orderItems: cart.items.map(item => ({
+            productVariantId: item.productVariantId || item.id,
+            quantity: item.quantity
+          }))
+        };
+      } else {
+        // Guest user
+        orderData = {
+          shippingAddressId: null,
+          receiverName: guestInfo.receiverName,
+          receiverPhone: guestInfo.phone,
+          receiverEmail: guestInfo.email,
+          shippingAddress: guestInfo.address,
+          shippingMethod: 'GHTK',
+          voucherCode: voucherCode || null,
+          note: note,
+          orderItems: cart.items.map(item => ({
+            productVariantId: item.productVariantId || item.id,
+            quantity: item.quantity
+          }))
+        };
+      }
       
       const orderRes = await orderApi.create(orderData);
       const orderId = orderRes?.data?.id || orderRes?.id;
@@ -180,16 +289,56 @@ const CheckoutPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {addresses.map((addr) => (
-                    <label key={addr.id} className={`relative p-5 border-2 rounded-2xl cursor-pointer transition-all ${selectedAddressId === addr.id ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-200'}`}>
-                      <input type="radio" className="hidden" name="addr" onChange={() => setSelectedAddressId(addr.id)} checked={selectedAddressId === addr.id} />
-                      <div className="font-bold text-gray-800">{addr.receiverName}</div>
-                      <div className="text-sm text-gray-500 mb-2">{addr.phone}</div>
-                      <div className="text-xs text-gray-400 line-clamp-2">{addr.fullAddress}</div>
-                      {selectedAddressId === addr.id && <div className="absolute top-4 right-4 text-blue-500 font-bold text-xs uppercase">Chọn</div>}
-                    </label>
-                  ))}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-sm text-gray-500">Chọn địa chỉ giao hàng</p>
+                    <button 
+                      onClick={openAddAddressModal}
+                      className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition"
+                    >
+                      <FaPlus /> Thêm địa chỉ mới
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {addresses.map((addr) => (
+                      <label key={addr.id} className={`relative p-5 border-2 rounded-2xl cursor-pointer transition-all ${selectedAddressId === addr.id ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                        <input type="radio" className="hidden" name="addr" onChange={() => setSelectedAddressId(addr.id)} checked={selectedAddressId === addr.id} />
+                        <div className="font-bold text-gray-800">{addr.receiverName}</div>
+                        <div className="text-sm text-gray-500 mb-2">{addr.phone}</div>
+                        <div className="text-xs text-gray-400 line-clamp-2">{addr.fullAddress}</div>
+                        {addr.isDefault && <div className="mt-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded inline-block">Mặc định</div>}
+                        {selectedAddressId === addr.id && <div className="absolute top-4 right-4 text-blue-500 font-bold text-xs uppercase">Chọn</div>}
+                        
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                          <button 
+                            onClick={(e) => { e.preventDefault(); openEditAddressModal(addr); }}
+                            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                          >
+                            <FaEdit /> Sửa
+                          </button>
+                          <button 
+                            onClick={(e) => { e.preventDefault(); handleDeleteAddress(addr.id); }}
+                            className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
+                          >
+                            <FaTrash /> Xóa
+                          </button>
+                          {!addr.isDefault && (
+                            <button 
+                              onClick={(e) => { e.preventDefault(); handleSetDefaultAddress(addr.id); }}
+                              className="text-xs text-green-600 hover:text-green-700 ml-auto"
+                            >
+                              Đặt mặc định
+                            </button>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {addresses.length === 0 && (
+                    <div className="text-center py-8 text-gray-400">
+                      Chưa có địa chỉ nào. Thêm địa chỉ để tiếp tục.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -218,16 +367,36 @@ const CheckoutPage = () => {
               </div>
             </div>
 
-            {/* GHI CHÚ */}
-            <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
-              <h2 className="text-lg font-bold mb-4 text-gray-700">📝 Ghi chú đơn hàng</h2>
-              <input 
-                type="text" 
-                placeholder="Lời nhắn cho shipper..." 
-                className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-100"
-                value={note}
-                onChange={e => setNote(e.target.value)}
-              />
+            {/* MÃ GIẢM GIÁ & GHI CHÚ */}
+            <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100 space-y-6">
+              <div>
+                <h2 className="text-lg font-bold mb-4 text-gray-700 flex items-center gap-2">
+                  🎫 Mã giảm giá
+                </h2>
+                <div className="flex gap-3">
+                  <input 
+                    type="text" 
+                    placeholder="Nhập mã giảm giá (nếu có)" 
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500"
+                    value={voucherCode}
+                    onChange={e => setVoucherCode(e.target.value.toUpperCase())}
+                  />
+                  <button className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition">
+                    Áp dụng
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-lg font-bold mb-4 text-gray-700">📝 Ghi chú đơn hàng</h2>
+                <input 
+                  type="text" 
+                  placeholder="Lời nhắn cho shipper..." 
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-100"
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
@@ -281,6 +450,86 @@ const CheckoutPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal thêm/sửa địa chỉ */}
+      {showAddressModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 relative">
+            <button 
+              onClick={() => setShowAddressModal(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+            >
+              <FaTimes size={20} />
+            </button>
+            
+            <h3 className="text-2xl font-bold mb-6 text-gray-800">
+              {addressFormMode === 'add' ? '➕ Thêm địa chỉ mới' : '✏️ Sửa địa chỉ'}
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Tên người nhận *</label>
+                <input 
+                  type="text"
+                  value={addressForm.receiverName}
+                  onChange={(e) => setAddressForm({...addressForm, receiverName: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Nhập tên người nhận"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Số điện thoại *</label>
+                <input 
+                  type="text"
+                  value={addressForm.phone}
+                  onChange={(e) => setAddressForm({...addressForm, phone: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Nhập số điện thoại"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Địa chỉ chi tiết *</label>
+                <textarea 
+                  value={addressForm.fullAddress}
+                  onChange={(e) => setAddressForm({...addressForm, fullAddress: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none h-24"
+                  placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox"
+                  id="isDefault"
+                  checked={addressForm.isDefault}
+                  onChange={(e) => setAddressForm({...addressForm, isDefault: e.target.checked})}
+                  className="w-5 h-5 text-blue-600"
+                />
+                <label htmlFor="isDefault" className="text-sm text-gray-700 cursor-pointer">
+                  Đặt làm địa chỉ mặc định
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button 
+                onClick={() => setShowAddressModal(false)}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleSaveAddress}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+              >
+                <FaSave /> Lưu địa chỉ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
