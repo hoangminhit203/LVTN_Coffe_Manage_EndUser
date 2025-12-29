@@ -117,7 +117,7 @@ const FlavorNoteDialog = ({ open, onClose, onSubmit, editData }) => {
           {/* Name Input */}
           <div>
             <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-              Flavor Note Name <span className="text-red-500">*</span>
+              Tên Ghi Chú Hương Vị <span className="text-red-500">*</span>
             </label>
             <input
               name="name"
@@ -158,7 +158,7 @@ const FlavorNoteDialog = ({ open, onClose, onSubmit, editData }) => {
               htmlFor="isActive" 
               className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
             >
-              Activate Flavor Note
+              Kích Hoạt Ghi Chú Hương Vị
             </label>
           </div>
 
@@ -169,14 +169,14 @@ const FlavorNoteDialog = ({ open, onClose, onSubmit, editData }) => {
               onClick={handleClose}
               className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
               disabled={!form.name.trim()}
               className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg font-medium"
             >
-              Save
+              Lưu
             </button>
           </div>
         </form>

@@ -137,7 +137,7 @@ const CategoryDialog = ({ open, onClose, onSubmit, editData }) => {
           {/* Name Input */}
           <div>
             <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-              Category Name <span className="text-red-500">*</span>
+              Tên Danh Mục <span className="text-red-500">*</span>
             </label>
             <input
               name="name"
@@ -159,7 +159,7 @@ const CategoryDialog = ({ open, onClose, onSubmit, editData }) => {
             )}
             {!errors.name && form.name && (
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {form.name.length}/100 characters
+                {form.name.length}/100 Ký Tự
               </div>
             )}
           </div>
@@ -167,7 +167,7 @@ const CategoryDialog = ({ open, onClose, onSubmit, editData }) => {
           {/* Description Input */}
           <div>
             <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-              Description
+              Mô Tả
             </label>
             <textarea
               name="description"
@@ -190,7 +190,7 @@ const CategoryDialog = ({ open, onClose, onSubmit, editData }) => {
             )}
             {!errors.description && (
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {form.description.length}/500 characters
+                {form.description.length}/500 Ký Tự
               </div>
             )}
           </div>
@@ -220,14 +220,14 @@ const CategoryDialog = ({ open, onClose, onSubmit, editData }) => {
               onClick={handleClose}
               className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
               disabled={!form.name.trim()}
               className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg font-medium"
             >
-              Save
+              Lưu
             </button>
           </div>
         </form>
