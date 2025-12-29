@@ -4,7 +4,7 @@ const API_BASE_URL =
 const getGuestKey = () => {
   let key = localStorage.getItem("guestKey")
   if (!key) {
-    key = 'g-' + Math.random().toString(36).substring(2, 15)
+    key = "g-" + Math.random().toString(36).substring(2, 15)
     localStorage.setItem("guestKey", key)
   }
   return key
@@ -14,7 +14,7 @@ const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`
 
   const defaultHeaders = { "Content-Type": "application/json" }
-  
+
   // 1. Kiểm tra Token (Hội viên)
   const token = localStorage.getItem("token")
   if (token) {
@@ -26,6 +26,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
   const config = {
     ...options,
+    credentials: "include", // Cho phép gửi cookies/credentials
     headers: {
       ...defaultHeaders,
       ...(options.headers || {}),

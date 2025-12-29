@@ -9,7 +9,7 @@ const CategoryViewDialog = ({ open, onClose, category }) => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
-            Category Details
+            Chi Tiết Danh Mục
           </h2>
           <button
             onClick={onClose}
@@ -34,7 +34,7 @@ const CategoryViewDialog = ({ open, onClose, category }) => {
           {/* Name */}
           <div className="grid grid-cols-3 gap-4">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Name:
+              Tên Danh Mục:
             </div>
             <div className="col-span-2 text-sm text-slate-900 dark:text-slate-50 font-medium">
               {category.name}
@@ -44,7 +44,7 @@ const CategoryViewDialog = ({ open, onClose, category }) => {
           {/* Description */}
           <div className="grid grid-cols-3 gap-4">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Description:
+              Mô Tả:
             </div>
             <div className="col-span-2 text-sm text-slate-900 dark:text-slate-50">
               {category.description || "No description"}
@@ -54,16 +54,16 @@ const CategoryViewDialog = ({ open, onClose, category }) => {
           {/* Status */}
           <div className="grid grid-cols-3 gap-4">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Status:
+              Trạng Thái:
             </div>
             <div className="col-span-2">
               {category.isActive ? (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                  Active
+                  Hoạt Động
                 </span>
               ) : (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                  Inactive
+                  Không Hoạt Động
                 </span>
               )}
             </div>
@@ -72,7 +72,7 @@ const CategoryViewDialog = ({ open, onClose, category }) => {
           {/* Created Date */}
           <div className="grid grid-cols-3 gap-4">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Created Date:
+              Ngày Tạo:
             </div>
             <div className="col-span-2 text-sm text-slate-900 dark:text-slate-50">
               {new Date(category.createdDate).toLocaleString("en-US", {
@@ -86,7 +86,7 @@ const CategoryViewDialog = ({ open, onClose, category }) => {
           {category.updatedDate && (
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                Updated Date:
+                Ngày Cập Nhật:
               </div>
               <div className="col-span-2 text-sm text-slate-900 dark:text-slate-50">
                 {new Date(category.updatedDate).toLocaleString("en-US", {
@@ -104,7 +104,7 @@ const CategoryViewDialog = ({ open, onClose, category }) => {
             onClick={onClose}
             className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors font-medium"
           >
-            Close
+            Đóng
           </button>
         </div>
       </div>

@@ -5,7 +5,7 @@ const Pagination = ({ paging, setPaging }) => {
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
       {/* Page size selector */}
       <div className="flex items-center gap-2">
-        <label className="text-sm text-slate-600 dark:text-slate-400">Shows:</label>
+        <label className="text-sm text-slate-600 dark:text-slate-400">Hiện:</label>
         <select
           value={paging.pageSize}
           onChange={(e) =>
@@ -23,7 +23,7 @@ const Pagination = ({ paging, setPaging }) => {
           <option value={50}>50</option>
         </select>
         <span className="text-sm text-slate-600 dark:text-slate-400">
-          Total: {paging.totalRecords} items
+          Tổng: {paging.totalRecords} mục
         </span>
       </div>
 
