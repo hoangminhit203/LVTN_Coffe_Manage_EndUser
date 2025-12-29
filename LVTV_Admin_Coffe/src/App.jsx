@@ -11,6 +11,8 @@ import ProductPage from "@/routes/product/page";
 import NewProduct from "@/components/product/NewProduct";
 import EditProduct from "@/components/product/EditProduct";
 import NotFoundPage from "@/routes/not-found/page";
+import OrderPage from "@/routes/order/page";
+import Order from "@/components/order/Order";
 
 function App() {
     const router = createBrowserRouter([
@@ -43,6 +45,14 @@ function App() {
                     element: <NewProduct />,
                 },
                 {
+                    path: "orders",
+                    element: <OrderPage />,
+                },
+                {
+                    path: "orders/:id",
+                    element: <Order />,
+                },
+                {
                     path: "analytics",
                     element: <h1 className="title">Analytics</h1>,
                 },
@@ -62,7 +72,6 @@ function App() {
                     path: "verified-customers",
                     element: <h1 className="title">Verified Customers</h1>,
                 },
-             
                 {
                     path: "products/edit/:id",
                     element: <EditProduct />,
