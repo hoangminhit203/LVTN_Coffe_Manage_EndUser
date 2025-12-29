@@ -16,6 +16,8 @@ export const orderApi = {
 
   // Cập nhật trạng thái đơn hàng
   updateStatus: (id, status) => api.patch(`/Order/${id}/status`, { status }),
+
+  getHistory: () => api.get("/Order/history"),
 }
 
 export default orderApi
