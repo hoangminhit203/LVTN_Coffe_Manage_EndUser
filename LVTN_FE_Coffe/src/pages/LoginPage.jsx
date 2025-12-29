@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userApi } from '../components/Api/user';
-import { saveToken, getUserIdFromToken } from '../utils/auth';
+import { saveToken, getUserIdFromToken, getUserRole } from '../utils/auth';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -9,6 +9,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   // Redirect to home after a short delay when login success message is set
@@ -32,8 +33,15 @@ const LoginPage = () => {
 
       if (token) {
         saveToken(token);
+        localStorage.setItem('accessToken', token); // Save as accessToken too
+        
         const userId = getUserIdFromToken();
         console.log('User ID from token:', userId);
+        
+        // Get user role from token
+        const role = getUserRole(token);
+        setUserRole(role);
+        console.log('Role của user là:', role);
       }
       
       // Lưu thông tin user vào localStorage
