@@ -33,6 +33,27 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Hàm lấy chữ cái đầu của tên
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name[0].toUpperCase();
+  };
+
+  // Hàm tạo màu nền từ tên
+  const getAvatarColor = (name) => {
+    if (!name) return "#6B7280";
+    const colors = [
+      "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
+      "#EC4899", "#14B8A6", "#F97316", "#06B6D4", "#6366F1"
+    ];
+    const charCode = name.charCodeAt(0) + name.charCodeAt(name.length - 1);
+    return colors[charCode % colors.length];
+  };
+
   // Hàm lấy số lượng từ API
   const fetchCartCount = async () => {
     // Luôn cho phép fetch cart count, apiRequest sẽ tự xử lý Guest-Key hoặc Token
@@ -152,9 +173,19 @@ const Navbar = () => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
+                className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors overflow-hidden"
+                style={isAuth && userName ? {
+                  backgroundColor: getAvatarColor(userName),
+                  borderColor: getAvatarColor(userName)
+                } : {}}
               >
-                <FaUser />
+                {isAuth && userName ? (
+                  <span className="text-white font-bold text-sm">
+                    {getInitials(userName)}
+                  </span>
+                ) : (
+                  <FaUser />
+                )}
               </button>
 
               {isDropdownOpen && (

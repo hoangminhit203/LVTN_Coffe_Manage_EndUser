@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
+import { getCategories, getProductsByCategory } from '../components/Api/catelogry';
 import { isAuthenticated } from '../utils/auth';
 
 const ProductList = () => {
@@ -10,8 +10,6 @@ const ProductList = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  const API_BASE = 'https://localhost:44384/api';
 
   // Yêu thích (Wishlist) thường gắn liền với Profile nên vẫn giữ yêu cầu đăng nhập
   const handleAddToWishlist = async (productId) => {
@@ -54,12 +52,12 @@ const ProductList = () => {
     }
   };
 
-  // Các useEffect giữ nguyên để fetch dữ liệu
+  // Fetch categories sử dụng API function
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/Category`);
-        const data = res.data?.data?.records || [];
+        const res = await getCategories({ pageSize: 100 });
+        const data = res?.data?.records || [];
         setCategories(data);
       } catch (err) {
         console.error('Lỗi tải danh mục:', err);
@@ -74,12 +72,17 @@ const ProductList = () => {
         setLoading(true);
         let res;
         if (selectedCategory) {
-          res = await axios.get(`${API_BASE}/Product/by-category/${selectedCategory}`);
+          // Lấy sản phẩm theo category với pagination
+          res = await getProductsByCategory(selectedCategory, { 
+            pageNumber: 1, 
+            pageSize: 100 
+          });
         } else {
+          // Lấy tất cả sản phẩm
           res = await productApi.getAll();
         }
         const responseData = res.data || res;
-        const list = responseData?.data?.records || responseData?.records || responseData?.data || [];
+        const list = responseData?.records || responseData?.data?.records || responseData?.data || [];
         setProducts(list);
       } catch (err) {
         console.error('Lỗi tải sản phẩm:', err);
@@ -91,11 +94,24 @@ const ProductList = () => {
     fetchProducts();
   }, [selectedCategory]);
 
-  // Helper functions giữ nguyên
+  // Helper functions - xử lý cả 2 cấu trúc dữ liệu
   const getName = (p) => p?.name || 'Sản phẩm';
-  const getPrice = (p) => p?.variants?.[0]?.price || 0;
-  const getSku = (p) => p?.variants?.[0]?.sku || 'N/A';
+  const getPrice = (p) => {
+    // Ưu tiên lấy từ price trực tiếp (từ category API)
+    if (p?.price) return p.price;
+    // Fallback lấy từ variants (từ getAll API)
+    return p?.variants?.[0]?.price || 0;
+  };
+  const getSku = (p) => {
+    // Ưu tiên lấy SKU trực tiếp (từ category API)
+    if (p?.sku) return p.sku;
+    // Fallback lấy từ variants (từ getAll API)
+    return p?.variants?.[0]?.sku || 'N/A';
+  };
   const getImage = (p) => {
+    // Ưu tiên lấy imageUrl trực tiếp (từ category API)
+    if (p?.imageUrl) return p.imageUrl;
+    // Fallback lấy từ variants (từ getAll API)
     const firstVariant = p?.variants?.[0];
     if (firstVariant?.images?.length > 0) return firstVariant.images[0].imageUrl;
     return 'https://via.placeholder.com/400';
@@ -152,48 +168,57 @@ const ProductList = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map((p) => (
-                  <div key={p.productId} className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col hover:shadow-lg transition-all duration-300 group">
-                    <Link 
-                      to={`/product/${p.productId}`} 
-                      className="block w-full aspect-square relative bg-white border-b border-gray-100 overflow-hidden"
+                  <div
+                    key={p.productId}
+                    className="group bg-white border border-gray-200 rounded-none overflow-hidden transition-all duration-300 hover:shadow-xl"
+                  >
+                    {/* IMAGE */}
+                    <Link
+                      to={`/product/${p.productId}`}
+                      className="block relative aspect-square bg-gray-50 overflow-hidden"
                     >
-                      <img 
-                        src={getImage(p)} 
-                        alt={getName(p)} 
-                        className="w-full h-full object-cover transition duration-500 group-hover:scale-110" 
+                      <img
+                        src={getImage(p)}
+                        alt={getName(p)}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
+
+                      {/* Wishlist */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAddToWishlist(p.productId);
+                        }}
+                        className="absolute top-3 right-3 w-9 h-9 bg-white/90 border border-gray-300 flex items-center justify-center text-gray-700 hover:text-red-600 hover:border-red-600 transition"
+                        title="Yêu thích"
+                      >
+                        ♥
+                      </button>
                     </Link>
 
-                    <div className="p-5 flex flex-col flex-grow">
+                    {/* CONTENT */}
+                    <div className="p-5 flex flex-col min-h-[190px]">
                       <Link to={`/product/${p.productId}`}>
-                        <h4 className="text-sm font-semibold text-gray-800 line-clamp-2 mb-2 h-10 leading-tight">
+                        <h3 className="text-sm font-semibold text-gray-900 uppercase leading-snug line-clamp-2 mb-2">
                           {getName(p)}
-                        </h4>
+                        </h3>
                       </Link>
-                      
+
+                      <p className="text-[11px] text-gray-400 mb-3 tracking-wide">
+                        SKU: {getSku(p)}
+                      </p>
+
                       <div className="mt-auto">
-                        <div className="text-[11px] text-gray-400 mb-1 tracking-tight">SKU: {getSku(p)}</div>
-                        <p className="text-lg font-extrabold text-red-600 mb-5">
+                        <p className="text-xl font-bold text-[#8B0000] mb-4">
                           {formatPrice(getPrice(p))}
                         </p>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleAddToWishlist(p.productId)}
-                            type="button"
-                            className="w-11 h-11 flex items-center justify-center rounded-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all active:scale-90"
-                            title="Thêm vào yêu thích"
-                          >
-                            <span className="text-2xl leading-none">♥</span>
-                          </button>
-
-                          <button
-                            onClick={() => handleBuyNow(p)}
-                            className="flex-1 bg-[#E40046] text-white h-11 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-95 text-xs font-bold uppercase tracking-wider"
-                          >
-                            Mua ngay
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleBuyNow(p)}
+                          className="w-full h-11 bg-black text-white text-xs font-bold tracking-widest uppercase hover:bg-[#8B0000] transition-all"
+                        >
+                          Mua ngay
+                        </button>
                       </div>
                     </div>
                   </div>

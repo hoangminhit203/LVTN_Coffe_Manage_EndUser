@@ -61,6 +61,7 @@ const api = {
 export const productApi = {
   getAll: () => api.get("/Product"),
   getById: (id) => api.get(`/Product/${id}`),
+  getByCategory: (categoryId) => api.get(`/Product/by-category/${categoryId}`),
 }
 export const wishlistApi = {
   add: (productId) => {
