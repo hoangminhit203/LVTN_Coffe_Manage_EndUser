@@ -11,7 +11,7 @@ import {
   FaShoppingCart,
   FaBox, // Thêm icon hộp để đại diện cho đơn hàng
 } from "react-icons/fa";
-import { isAuthenticated, logout, getUserFromToken } from "../../utils/auth";
+import { isAuthenticated, logout, getUserFromToken, isAdmin } from "../../utils/auth";
 import { cartApi } from "../Api/products";
 import { userApi } from "../Api/user";
 
@@ -29,6 +29,7 @@ const Navbar = () => {
   const [isAuth, setIsAuth] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [userName, setUserName] = useState("");
+  const [hasAdminRole, setHasAdminRole] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,8 +77,10 @@ const Navbar = () => {
     
     if (isAuthenticated()) {
       fetchUserName();
+      setHasAdminRole(isAdmin());
     } else {
       setUserName("");
+      setHasAdminRole(false);
     }
   }, [location]);
 
@@ -224,6 +227,16 @@ const Navbar = () => {
                       <Link to="/dashboard" className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
                         <FaBox className="text-gray-400" /> Đơn hàng của tôi
                       </Link>
+                      
+                      {/* Admin Dashboard Link - Only show for admin users */}
+                      {hasAdminRole && (
+                        <a 
+                          href="http://localhost:3000/" 
+                          className="flex items-center gap-3 px-5 py-2.5 hover:bg-purple-50 text-sm text-purple-700 transition-colors font-semibold"
+                        >
+                          <span className="text-purple-500">🔐</span> Admin Dashboard
+                        </a>
+                      )}
                       
                       <div className="border-t border-gray-100 my-2"></div>
                       
