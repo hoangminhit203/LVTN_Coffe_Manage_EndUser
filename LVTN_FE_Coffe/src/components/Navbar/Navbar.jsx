@@ -9,6 +9,7 @@ import {
   FaBars,
   FaTimes,
   FaShoppingCart,
+  FaBox, // Thêm icon hộp để đại diện cho đơn hàng
 } from "react-icons/fa";
 import { isAuthenticated, logout, getUserFromToken } from "../../utils/auth";
 import { cartApi } from "../Api/products";
@@ -34,10 +35,7 @@ const Navbar = () => {
 
   // Hàm lấy số lượng từ API
   const fetchCartCount = async () => {
-    if (!isAuthenticated()) {
-      setCartCount(0);
-      return;
-    }
+    // Luôn cho phép fetch cart count, apiRequest sẽ tự xử lý Guest-Key hoặc Token
     try {
       const response = await cartApi.getCart();
       const data = response.data || response;
@@ -45,6 +43,7 @@ const Navbar = () => {
       setCartCount(count);
     } catch (err) {
       console.error("Lỗi lấy số lượng giỏ hàng:", err);
+      setCartCount(0);
     }
   };
 
@@ -54,7 +53,6 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
     fetchCartCount();
     
-    // Lấy username từ API hoặc token
     if (isAuthenticated()) {
       fetchUserName();
     } else {
@@ -66,32 +64,28 @@ const Navbar = () => {
   const fetchUserName = async () => {
     try {
       const response = await userApi.me();
-      // API trả về { isSuccess, message, data }
       const userData = response?.data?.data || response?.data || response;
-      // Hiển thị firstName + lastName nếu có, nếu không thì userName
       const displayName = userData?.firstName && userData?.lastName 
         ? `${userData.firstName} ${userData.lastName}` 
         : userData?.userName || userData?.email?.split('@')[0] || "User";
       setUserName(displayName);
     } catch (err) {
       console.error("Lỗi lấy thông tin user:", err);
-      // Fallback: lấy từ token nếu API thất bại
       const tokenData = getUserFromToken();
       const emailFromToken = tokenData?.email || tokenData?.unique_name;
       setUserName(emailFromToken?.split('@')[0] || "User");
     }
   };
 
-  // Lắng nghe sự kiện "cartUpdated" TỰ ĐỘNG (Không cần reload)
+  // Lắng nghe sự kiện "cartUpdated"
   useEffect(() => {
     window.addEventListener("cartUpdated", fetchCartCount);
-    
-    // Cleanup khi component bị hủy
     return () => {
       window.removeEventListener("cartUpdated", fetchCartCount);
     };
   }, []);
 
+  // Xử lý đóng dropdown khi click ngoài
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -164,33 +158,47 @@ const Navbar = () => {
               </button>
 
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl py-2 border border-gray-100 z-[60]">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl py-3 border border-gray-100 z-[60] overflow-hidden">
                   {!isAuth ? (
                     <>
-                      <Link to="/login" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-sm text-gray-700">
-                        <FaSignInAlt className="text-blue-500" /> Đăng nhập
+                      {/* DÀNH CHO KHÁCH VÃNG LAI */}
+                      <Link to="/login" className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 text-sm text-gray-700 transition-colors">
+                        <FaSignInAlt className="text-blue-500" /> 
+                        <span className="font-medium">Đăng nhập</span>
                       </Link>
-                      <Link to="/register" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-sm text-gray-700">
-                        <FaUserPlus className="text-green-500" /> Đăng ký
+                      <Link to="/register" className="flex items-center gap-3 px-5 py-3 hover:bg-green-50 text-sm text-gray-700 transition-colors">
+                        <FaUserPlus className="text-green-500" /> 
+                        <span className="font-medium">Đăng ký thành viên</span>
+                      </Link>
+                      
+                      <div className="border-t border-gray-50 my-2"></div>
+                      
+                      <Link to="/order-history" className="flex items-center gap-3 px-5 py-3 hover:bg-orange-50 text-sm text-orange-600 transition-colors font-bold">
+                        <FaBox className="text-orange-500" /> 
+                        Tra cứu đơn hàng
                       </Link>
                     </>
                   ) : (
                     <>
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-800 truncate">
-                          {userName || "User"}
-                        </p>
+                      {/* DÀNH CHO THÀNH VIÊN */}
+                      <div className="px-5 py-3 bg-gray-50 mb-2">
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tài khoản</p>
+                        <p className="text-sm font-bold text-gray-800 truncate">{userName}</p>
                       </div>
-                      <Link to="/profile" className="px-4 py-2 block hover:bg-gray-50 text-sm text-gray-700 font-medium">
-                        Thông tin cá nhân
+                      
+                      <Link to="/profile" className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+                        <FaUser className="text-gray-400" /> Thông tin cá nhân
                       </Link>
-                      <Link to="/dashboard" className="px-4 py-2 block hover:bg-gray-50 text-sm text-gray-700 font-medium">
-                        Đơn hàng của tôi
+                      
+                      <Link to="/dashboard" className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+                        <FaBox className="text-gray-400" /> Đơn hàng của tôi
                       </Link>
-                      <hr className="my-1 border-gray-100" />
+                      
+                      <div className="border-t border-gray-100 my-2"></div>
+                      
                       <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 text-sm flex items-center gap-3 transition-colors"
+                        className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 text-sm flex items-center gap-3 font-bold transition-all"
                       >
                         <FaSignOutAlt /> Đăng xuất
                       </button>
@@ -225,6 +233,16 @@ const Navbar = () => {
                   </Link>
                 </li>
               ))}
+              {/* Thêm link đơn hàng vào mobile menu */}
+              <li>
+                <Link
+                  to={isAuth ? "/dashboard" : "/order-history"}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-orange-600 block px-2 font-bold flex items-center gap-2"
+                >
+                  <FaBox /> {isAuth ? "Đơn hàng của tôi" : "Tra cứu đơn hàng"}
+                </Link>
+              </li>
             </ul>
           </div>
         )}

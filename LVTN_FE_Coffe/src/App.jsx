@@ -20,6 +20,7 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import PaymentCallback from './pages/PaymentCallback';
 import ProfilePage from './pages/ProfilePage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
 
 const App = () => {
   useEffect(() => {
@@ -49,6 +50,7 @@ const App = () => {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/payment-callback" element={<PaymentCallback />} />
+        <Route path="/order-history" element={<OrderHistoryPage />} />
       </Routes>
       <Footer />
     </div>

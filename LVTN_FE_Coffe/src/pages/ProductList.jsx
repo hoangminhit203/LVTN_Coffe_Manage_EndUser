@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-// IMPORT THÊM wishlistApi Ở ĐÂY
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
 import { isAuthenticated } from '../utils/auth';
 
@@ -14,6 +13,7 @@ const ProductList = () => {
 
   const API_BASE = 'https://localhost:44384/api';
 
+  // Yêu thích (Wishlist) thường gắn liền với Profile nên vẫn giữ yêu cầu đăng nhập
   const handleAddToWishlist = async (productId) => {
     if (!isAuthenticated()) {
       alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
@@ -22,15 +22,39 @@ const ProductList = () => {
     }
 
     try {
-      // Gọi API wishlist dùng fetch đã cấu hình trong products.js
       await wishlistApi.add(productId);
       alert('Đã thêm vào danh sách yêu thích thành công! ♥');
     } catch (err) {
-      // Hiển thị thông báo lỗi (ví dụ: "Sản phẩm đã tồn tại")
       alert(err.message || 'Không thể thêm vào yêu thích.');
     }
   };
 
+  // --- HÀM MUA NGAY ĐÃ SỬA ---
+  const handleBuyNow = async (product) => {
+    // Bước 1: Lấy ID của variant (ưu tiên variantId hoặc id tùy theo cấu trúc dữ liệu của bạn)
+    const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
+    
+    if (!variantId) {
+      alert("Sản phẩm hiện tại không có phiên bản để mua.");
+      return;
+    }
+
+    try {
+      // Bước 2: Gọi API thêm vào giỏ hàng. 
+      // Do file products.js đã có logic tự chèn X-Guest-Key nên không cần check auth ở đây.
+      await cartApi.addItem(variantId, 1);
+      
+      alert('Đã thêm sản phẩm vào giỏ hàng!');
+      
+      // Tùy chọn: Chuyển hướng người dùng đến trang giỏ hàng để họ thấy sản phẩm vừa thêm
+      navigate('/cart'); 
+    } catch (err) {
+      console.error('Lỗi khi thêm vào giỏ:', err);
+      alert('Có lỗi xảy ra: ' + (err.message || 'Lỗi hệ thống'));
+    }
+  };
+
+  // Các useEffect giữ nguyên để fetch dữ liệu
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -67,6 +91,7 @@ const ProductList = () => {
     fetchProducts();
   }, [selectedCategory]);
 
+  // Helper functions giữ nguyên
   const getName = (p) => p?.name || 'Sản phẩm';
   const getPrice = (p) => p?.variants?.[0]?.price || 0;
   const getSku = (p) => p?.variants?.[0]?.sku || 'N/A';
@@ -79,21 +104,6 @@ const ProductList = () => {
     return price > 0 ? Number(price).toLocaleString('vi-VN') + ' đ' : 'Liên hệ';
   };
 
-  const handleBuyNow = async (product) => {
-    if (!isAuthenticated()) {
-      alert('Vui lòng đăng nhập để thực hiện mua hàng');
-      navigate('/login');
-      return;
-    }
-    const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
-    try {
-      await cartApi.addItem(variantId, 1);
-      alert('Đã thêm sản phẩm vào giỏ hàng!');
-    } catch (err) {
-      alert('Có lỗi xảy ra: ' + (err.message || 'Lỗi hệ thống'));
-    }
-  };
-
   return (
     <div className="bg-white min-h-screen py-10 font-sans">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -102,7 +112,6 @@ const ProductList = () => {
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-10">
-          {/* SIDEBAR */}
           <aside className="w-full lg:w-1/4">
             <h2 className="text-lg font-bold mb-6 text-gray-800 border-b-2 border-red-800 inline-block pb-1 uppercase">
               Loại sản phẩm
@@ -110,7 +119,7 @@ const ProductList = () => {
             <div className="flex flex-col">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={`text-left py-3 border-b border-gray-100 text-sm transition-colors  cursor-pointer ${
+                className={`text-left py-3 border-b border-gray-100 text-sm transition-colors cursor-pointer ${
                   selectedCategory === null ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'
                 }`}
               >
@@ -130,7 +139,6 @@ const ProductList = () => {
             </div>
           </aside>
 
-          {/* MAIN CONTENT */}
           <main className="flex-1">
             <h2 className="text-2xl font-bold mb-10 text-gray-900 uppercase">
               Danh sách sản phẩm
@@ -145,7 +153,6 @@ const ProductList = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map((p) => (
                   <div key={p.productId} className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col hover:shadow-lg transition-all duration-300 group">
-                    
                     <Link 
                       to={`/product/${p.productId}`} 
                       className="block w-full aspect-square relative bg-white border-b border-gray-100 overflow-hidden"
@@ -171,7 +178,6 @@ const ProductList = () => {
                         </p>
 
                         <div className="flex items-center gap-2">
-                          {/* NÚT YÊU THÍCH (WISHLIST) */}
                           <button
                             onClick={() => handleAddToWishlist(p.productId)}
                             type="button"

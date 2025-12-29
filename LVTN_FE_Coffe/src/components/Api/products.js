@@ -1,12 +1,28 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://localhost:44384/api"
 
+const getGuestKey = () => {
+  let key = localStorage.getItem("guestKey")
+  if (!key) {
+    key = 'g-' + Math.random().toString(36).substring(2, 15)
+    localStorage.setItem("guestKey", key)
+  }
+  return key
+}
+
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`
 
   const defaultHeaders = { "Content-Type": "application/json" }
+  
+  // 1. Kiểm tra Token (Hội viên)
   const token = localStorage.getItem("token")
-  if (token) defaultHeaders.Authorization = `Bearer ${token}`
+  if (token) {
+    defaultHeaders.Authorization = `Bearer ${token}`
+  } else {
+    // 2. Nếu không có Token, tự động đính kèm Guest Key (Khách vãng lai)
+    defaultHeaders["X-Guest-Key"] = getGuestKey()
+  }
 
   const config = {
     ...options,
@@ -108,4 +124,5 @@ export const paymentApi = {
   verifyCallback: (queryString) =>
     api.get(`/Payment/vnpay-callback${queryString}`),
 }
+
 export default api
