@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { userApi } from "../components/Api/user";
+import orderApi from "../components/Api/order";
 import { FaCalendarAlt, FaBox, FaChevronRight, FaFilter, FaInbox, FaSearch } from "react-icons/fa";
 
 // 1. Định nghĩa OrderCard (Đã sửa để đảm bảo được sử dụng)
@@ -77,7 +77,7 @@ const OrderPage = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const data = await userApi.getOrders();
+      const data = await orderApi.getHistory();
       const list = Array.isArray(data) ? data : data?.data || [];
       const sortedList = list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setOrders(sortedList);

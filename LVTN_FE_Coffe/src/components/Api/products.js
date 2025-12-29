@@ -19,9 +19,12 @@ const apiRequest = async (endpoint, options = {}) => {
   const token = localStorage.getItem("token")
   if (token) {
     defaultHeaders.Authorization = `Bearer ${token}`
-  } else {
-    // 2. Nếu không có Token, tự động đính kèm Guest Key (Khách vãng lai)
-    defaultHeaders["X-Guest-Key"] = getGuestKey()
+  }
+
+  // 2. Luôn gửi Guest Key nếu có (để backend tracking)
+  const guestKey = localStorage.getItem("guestKey")
+  if (guestKey) {
+    defaultHeaders["X-Guest-Key"] = guestKey
   }
 
   const config = {
