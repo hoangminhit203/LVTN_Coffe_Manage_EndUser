@@ -5,6 +5,7 @@ import AOS from 'aos';
 import "aos/dist/aos.css";
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
+import { ToastProvider } from './components/Toast/ToastContext';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -34,26 +35,28 @@ const App = () => {
   }, []);
   
   return (
-    <div className='overflow-x-hidden'>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/menu" element={<MenuPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/product-list" element={<ProductListPage />} />  
-        <Route path="/product/:id" element={<ProductDetailPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/payment-callback" element={<PaymentCallback />} />
-        <Route path="/order-history" element={<OrderHistoryPage />} />
-      </Routes>
-      <Footer />
-    </div>
+    <ToastProvider>
+      <div className='overflow-x-hidden'>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/menu" element={<MenuPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/product-list" element={<ProductListPage />} />  
+          <Route path="/product/:id" element={<ProductDetailPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/payment-callback" element={<PaymentCallback />} />
+          <Route path="/order-history" element={<OrderHistoryPage />} />
+        </Routes>
+        <Footer />
+      </div>
+    </ToastProvider>
   );
 }
 

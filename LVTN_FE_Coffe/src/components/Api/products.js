@@ -38,12 +38,30 @@ const apiRequest = async (endpoint, options = {}) => {
 
   const response = await fetch(url, config)
   const contentType = response.headers.get("content-type") || ""
-  const data = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text()
+
+  // Parse response dựa trên content-type
+  let data
+  if (contentType.includes("application/json")) {
+    data = await response.json()
+  } else {
+    data = await response.text()
+  }
 
   if (!response.ok) {
-    const message = (data && data.message) || `HTTP error ${response.status}`
+    // Xử lý error message từ backend (hỗ trợ cả JSON và plain text)
+    let message = `HTTP error ${response.status}`
+
+    if (typeof data === "string" && data.trim()) {
+      // Backend trả về plain text error message
+      message = data.trim()
+    } else if (data && data.message) {
+      // Backend trả về JSON với field message
+      message = data.message
+    } else if (data && typeof data === "object") {
+      // Backend trả về object, cố gắng stringify
+      message = JSON.stringify(data)
+    }
+
     throw new Error(message)
   }
 
@@ -77,6 +95,10 @@ export const wishlistApi = {
 
 export const cartApi = {
   getCart: () => api.get("/Cart"),
+
+  // Kiểm tra stock cho toàn bộ giỏ hàng
+  // ✅ Tự động hỗ trợ cả authenticated users (Bearer token) và guest users (X-Guest-Key)
+  checkStock: () => api.get("/Cart/check-stock"),
 
   addItem: async (productVariantId, quantity = 1) => {
     const res = await api.post("/CartItems", {

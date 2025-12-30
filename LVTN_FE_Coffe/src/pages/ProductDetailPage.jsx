@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 // Giả định đường dẫn import đúng, hãy chỉnh lại nếu file nằm chỗ khác
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
 import { isAuthenticated } from '../utils/auth';
+import { useToast } from '../components/Toast/ToastContext';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   
   // --- STATE QUẢN LÝ DỮ LIỆU ---
   const [product, setProduct] = useState(null);
@@ -51,16 +53,16 @@ const ProductDetailPage = () => {
   // --- HÀM XỬ LÝ THÊM VÀO WISHLIST ---
   const handleAddToWishlist = async () => {
     if (!isAuthenticated()) {
-      alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
-      navigate('/login');
+      toast.warning('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+      setTimeout(() => navigate('/login'), 1500);
       return;
     }
 
     try {
       await wishlistApi.add(id);
-      alert('Đã thêm sản phẩm vào danh sách yêu thích thành công! ♥');
+      toast.success('Đã thêm sản phẩm vào danh sách yêu thích! ♥');
     } catch (error) {
-      alert(error.message || 'Sản phẩm đã có trong danh sách yêu thích');
+      toast.error(error.message || 'Sản phẩm đã có trong danh sách yêu thích');
     }
   };
 
@@ -80,12 +82,28 @@ const ProductDetailPage = () => {
       return;
     }
     
+    // Kiểm tra stock trước khi thêm
+    if (currentStock <= 0) {
+      alert('Sản phẩm đã hết hàng!');
+      return;
+    }
+    
     try {
       // Mặc định thêm số lượng là 1
       await cartApi.addItem(variantId, 1);
       alert('Đã thêm vào giỏ hàng thành công!');
     } catch (error) {
-      alert(error.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.');
+      // Xử lý lỗi chi tiết từ backend
+      console.error('Lỗi thêm vào giỏ hàng:', error);
+      
+      let errorMessage = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
+      
+      // Nếu backend trả về lỗi vượt quá số lượng tồn kho
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     }
   };
 
