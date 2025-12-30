@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cartApi } from '../components/Api/products';
-import { FaShoppingCart, FaTrash, FaBox, FaPlus, FaMinus, FaChevronLeft } from 'react-icons/fa';
+import { FaShoppingCart, FaTrash, FaBox, FaPlus, FaMinus, FaChevronLeft, FaExclamationTriangle } from 'react-icons/fa';
+import { useToast } from '../components/Toast/ToastContext';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from '../components/ConfirmDialog/ConfirmDialog';
 
 const CartPage = () => {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const toast = useToast();
+  const { confirmState, confirm, handleClose, handleConfirm } = useConfirm();
 
   useEffect(() => {
     fetchCart();
@@ -18,6 +23,13 @@ const CartPage = () => {
       setLoading(true);
       setError(null);
       const data = await cartApi.getCart();
+      console.log('📦 Cart data từ backend:', data);
+      console.log('📦 Cart items:', data?.items);
+      // Log chi tiết từng item để xem có field stock không
+      if (data?.items?.length > 0) {
+        console.log('📦 Chi tiết item đầu tiên:', data.items[0]);
+        console.log('📦 Tất cả keys của item:', Object.keys(data.items[0]));
+      }
       setCart(data);
     } catch (err) {
       setError(err?.message || 'Không thể tải giỏ hàng');
@@ -27,19 +39,16 @@ const CartPage = () => {
     }
   };
 
-  // Phát tín hiệu để Navbar cập nhật số lượng Badge
   const notifyCartChange = () => {
     window.dispatchEvent(new Event("cartUpdated"));
   };
 
-  // Hàm cập nhật số lượng
   const handleUpdateQuantity = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
 
-    // Lưu lại trạng thái cũ để hoàn tác nếu lỗi
     const previousCart = { ...cart };
     
-    // Cập nhật giao diện ngay lập tức (Optimistic Update)
+    // Optimistic Update
     const updatedItems = cart.items.map(item => {
       if (item.id === itemId) {
         return { 
@@ -56,39 +65,111 @@ const CartPage = () => {
 
     try {
       await cartApi.updateQuantity(itemId, newQuantity);
-      notifyCartChange(); // Cập nhật số trên Navbar
+      notifyCartChange(); 
     } catch (err) {
-      setCart(previousCart); // Lỗi thì trả về dữ liệu cũ
-      alert(err?.message || 'Lỗi khi cập nhật số lượng');
+      console.error("Lỗi update cart:", err);
+      setCart(previousCart); 
+      
+      let errorMessage = 'Lỗi khi cập nhật số lượng';
+      if (err.response && err.response.data) {
+        errorMessage = typeof err.response.data === 'string' 
+            ? err.response.data 
+            : err.response.data.message || JSON.stringify(err.response.data);
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      toast.error(errorMessage);
     }
   };
 
-  // Hàm xóa 1 sản phẩm
   const handleRemoveItem = async (itemId) => {
-    if (!window.confirm('Bạn muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
-    
-    try {
-      setLoading(true);
-      await cartApi.removeItem(itemId); // Call DELETE API
-      await fetchCart(); // Tải lại data mới từ DB
-      notifyCartChange(); // Cập nhật số trên Navbar
-    } catch (err) {
-      alert('Không thể xóa sản phẩm. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
+    confirm({
+      title: 'Xóa sản phẩm',
+      message: 'Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?',
+      type: 'danger',
+      confirmText: 'Xóa',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await cartApi.removeItem(itemId); 
+          await fetchCart(); 
+          notifyCartChange();
+          toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
+        } catch (err) {
+          toast.error('Không thể xóa sản phẩm. Vui lòng thử lại.');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
-  // Hàm xóa sạch giỏ hàng
   const handleClearCart = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?')) return;
+    confirm({
+      title: 'Xóa toàn bộ giỏ hàng',
+      message: 'Bạn có chắc chắn muốn xóa toàn bộ sản phẩm trong giỏ hàng? Hành động này không thể hoàn tác.',
+      type: 'danger',
+      confirmText: 'Xóa tất cả',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await cartApi.clearCart();
+          setCart({ items: [], totalPrice: 0 });
+          notifyCartChange();
+          toast.success('Đã xóa toàn bộ giỏ hàng');
+        } catch (err) {
+          toast.error(err?.message || 'Không thể xóa giỏ hàng');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
+  // --- HÀM MỚI: XỬ LÝ CHECKOUT ---
+  const handleCheckout = async () => {
+    if (!cart || !cart.items) return;
+
+    console.log('🔍 Checking stock before checkout...');
+    
+    setLoading(true);
     try {
-      setLoading(true);
-      await cartApi.clearCart();
-      setCart({ items: [], totalPrice: 0 });
-      notifyCartChange(); // Cập nhật số trên Navbar (về 0)
+      // Gọi API checkStock từ Cart (Backend sẽ validate toàn bộ giỏ hàng)
+      const stockResult = await cartApi.checkStock();
+      console.log('Stock check result:', stockResult);
+      
+      // Backend trả về { isAvailable: true/false, message: "...", items: [...] }
+      if (!stockResult.isAvailable) {
+        // Có sản phẩm không đủ stock
+        console.error('❌ Stock validation failed');
+        
+        // Tạo message chi tiết từ items
+        let detailMessage = stockResult.message || 'Một số sản phẩm không đủ số lượng';
+        
+        if (stockResult.items && stockResult.items.length > 0) {
+          const itemDetails = stockResult.items
+            .filter(item => !item.isAvailable)
+            .map(item => `• ${item.productName}: Bạn chọn ${item.requestedQuantity}, kho chỉ còn ${item.availableStock}`)
+            .join('\n');
+          
+          detailMessage += '\n\n' + itemDetails + '\n\nVui lòng giảm số lượng hoặc xóa sản phẩm.';
+        }
+        
+        toast.error(detailMessage, 5000);
+        
+        // Reload lại cart để cập nhật số lượng mới nhất
+        await fetchCart();
+        return;
+      }
+      
+      // Nếu isAvailable = true → Chuyển trang
+      console.log('✅ Stock check passed, navigating to checkout...');
+      navigate('/checkout');
+      
     } catch (err) {
-      alert(err?.message || 'Không thể xóa giỏ hàng');
+      // Lỗi network hoặc lỗi khác
+      console.error('❌ Error checking stock:', err);
+      toast.error(err.message || 'Không thể kiểm tra tồn kho. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -98,7 +179,7 @@ const CartPage = () => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
-    }).format(price || 0);
+     }).format(price || 0);
   };
 
   if (loading && !cart) {
@@ -115,10 +196,20 @@ const CartPage = () => {
   const hasItems = cart && cart.items && cart.items.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <>
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={handleClose}
+        onConfirm={handleConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+      />
+      <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         
-        {/* Nút quay lại */}
         <button 
           onClick={() => navigate('/product-list')}
           className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 transition-colors font-medium"
@@ -126,7 +217,6 @@ const CartPage = () => {
           <FaChevronLeft size={14}/> Tiếp tục mua sắm
         </button>
 
-        {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 flex justify-between items-center border border-gray-100">
           <div className="flex items-center gap-4">
             <div className="bg-blue-600 p-3 rounded-xl shadow-lg shadow-blue-100">
@@ -164,65 +254,66 @@ const CartPage = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            {/* List sản phẩm */}
             <div className="lg:col-span-2 space-y-4">
-              {cart.items.map((item) => (
-                <div key={item.id} className="bg-white rounded-2xl shadow-sm p-5 border border-transparent hover:border-blue-100 transition-all flex flex-col sm:flex-row items-center gap-6">
-                  
-                  {/* Ảnh sản phẩm (Nếu có) */}
-                  <div className="w-20 h-20 bg-gray-50 rounded-xl flex-shrink-0 flex items-center justify-center border">
-                    <img 
-                      src={item.productImage || 'https://via.placeholder.com/80'} 
-                      alt={item.productName} 
-                      className="w-16 h-16 object-contain"
-                    />
-                  </div>
+              {cart.items.map((item) => {
+                // ⚠️ Backend không trả stock trong item, nên không thể hiển thị cảnh báo realtime
+                // Chỉ kiểm tra khi checkout
 
-                  {/* Thông tin */}
-                  <div className="flex-1 text-center sm:text-left">
-                    <h3 className="text-lg font-bold text-gray-800 leading-tight mb-1">{item.productName}</h3>
-                    <p className="text-sm text-gray-400 font-medium">{formatPrice(item.productPrice)}</p>
-                  </div>
-
-                  {/* Bộ tăng giảm số lượng */}
-                  <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-100">
-                    <button
-                      onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30"
-                      disabled={item.quantity <= 1}
-                    >
-                      <FaMinus size={10} />
-                    </button>
-                    <span className="w-12 text-center font-bold text-gray-700">{item.quantity}</span>
-                    <button
-                      onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-blue-600"
-                    >
-                      <FaPlus size={10} />
-                    </button>
-                  </div>
-
-                  {/* Thành tiền & Xóa */}
-                  <div className="flex items-center gap-6">
-                    <div className="text-right min-w-[100px]">
-                      <p className="text-lg font-black text-blue-600">{formatPrice(item.subtotal)}</p>
+                return (
+                  <div key={item.id} className="bg-white rounded-2xl shadow-sm p-5 border transition-all flex flex-col sm:flex-row items-center gap-6 border-transparent hover:border-blue-100">
+                    
+                    <div className="w-20 h-20 bg-gray-50 rounded-xl flex-shrink-0 flex items-center justify-center border">
+                      <img 
+                        src={item.productImage || 'https://via.placeholder.com/80'} 
+                        alt={item.productName} 
+                        className="w-16 h-16 object-contain"
+                      />
                     </div>
-                    <button 
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="bg-red-50 text-red-400 hover:text-red-600 p-3 rounded-xl transition-colors"
-                    >
-                      <FaTrash size={16} />
-                    </button>
+
+                    <div className="flex-1 text-center sm:text-left">
+                      <h3 className="text-lg font-bold text-gray-800 leading-tight mb-1">{item.productName}</h3>
+                      <p className="text-sm text-gray-400 font-medium">{formatPrice(item.productPrice)}</p>
+                      
+                      {/* Backend không trả stock info, nên không thể hiển thị cảnh báo ở đây */}
+                    </div>
+
+                    <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-100">
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                        className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30"
+                        disabled={item.quantity <= 1}
+                      >
+                        <FaMinus size={10} />
+                      </button>
+                      <span className="w-12 text-center font-bold text-gray-700">{item.quantity}</span>
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                        className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-blue-600"
+                      >
+                        <FaPlus size={10} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="text-right min-w-[100px]">
+                        <p className="text-lg font-black text-blue-600">{formatPrice(item.subtotal)}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="bg-red-50 text-red-400 hover:text-red-600 p-3 rounded-xl transition-colors"
+                      >
+                        <FaTrash size={16} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Sidebar thanh toán */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-3xl shadow-xl p-8 sticky top-24 border border-blue-50">
                 <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                   Chi tiết thanh toán
+                    Chi tiết thanh toán
                 </h2>
                 
                 <div className="space-y-4 mb-8">
@@ -240,8 +331,9 @@ const CartPage = () => {
                   </div>
                 </div>
 
+                {/* SỬ DỤNG HÀM MỚI Ở ĐÂY */}
                 <button
-                  onClick={() => navigate('/checkout')}
+                  onClick={handleCheckout} 
                   className="w-full bg-blue-600 text-white py-5 rounded-2xl font-bold text-lg hover:bg-blue-700 transition shadow-xl shadow-blue-100 active:scale-95"
                 >
                   THANH TOÁN NGAY
@@ -256,6 +348,7 @@ const CartPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

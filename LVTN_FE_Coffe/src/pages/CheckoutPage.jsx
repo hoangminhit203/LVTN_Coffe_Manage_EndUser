@@ -4,6 +4,9 @@ import { cartApi, paymentApi } from '../components/Api/products';
 import orderApi from '../components/Api/order';
 import shippingAddressApi from '../components/Api/ShippingAddress';
 import { isAuthenticated } from '../utils/auth';
+import { useToast } from '../components/Toast/ToastContext';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from '../components/ConfirmDialog/ConfirmDialog';
 import { 
   FaTruck, FaMapMarkerAlt, FaCreditCard, FaChevronLeft, 
   FaShoppingBag, FaMoneyBillWave, FaEnvelope, FaUser, FaPhone,
@@ -21,6 +24,8 @@ const CheckoutPage = () => {
   const [shippingFee, setShippingFee] = useState(30000);
   const [note, setNote] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
+  const toast = useToast();
+  const { confirmState, confirm, handleClose, handleConfirm } = useConfirm();
   
   // State dành cho khách vãng lai (Guest) thêm trường Email
   const [guestInfo, setGuestInfo] = useState({
@@ -105,34 +110,43 @@ const CheckoutPage = () => {
   // Lưu địa chỉ (thêm hoặc sửa)
   const handleSaveAddress = async () => {
     if (!addressForm.receiverName || !addressForm.phone || !addressForm.fullAddress) {
-      alert('Vui lòng điền đầy đủ thông tin');
+      toast.warning('Vui lòng điền đầy đủ thông tin');
       return;
     }
 
     try {
       if (addressFormMode === 'add') {
         await shippingAddressApi.create(addressForm);
+        toast.success('Đã thêm địa chỉ mới');
       } else {
         await shippingAddressApi.update(editingAddressId, addressForm);
+        toast.success('Đã cập nhật địa chỉ');
       }
       fetchAddresses();
       setShowAddressModal(false);
     } catch (err) {
-      alert('Lỗi khi lưu địa chỉ: ' + (err.message || 'Vui lòng thử lại'));
+      toast.error('Lỗi khi lưu địa chỉ: ' + (err.message || 'Vui lòng thử lại'));
     }
   };
 
   // Xóa địa chỉ
   const handleDeleteAddress = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa địa chỉ này?')) return;
-    
-    try {
-      await shippingAddressApi.delete(id);
-      fetchAddresses();
-      if (selectedAddressId === id) setSelectedAddressId(null);
-    } catch (err) {
-      alert('Lỗi khi xóa địa chỉ: ' + (err.message || 'Vui lòng thử lại'));
-    }
+    confirm({
+      title: 'Xóa địa chỉ',
+      message: 'Bạn có chắc muốn xóa địa chỉ này?',
+      type: 'danger',
+      confirmText: 'Xóa',
+      onConfirm: async () => {
+        try {
+          await shippingAddressApi.delete(id);
+          fetchAddresses();
+          if (selectedAddressId === id) setSelectedAddressId(null);
+          toast.success('Đã xóa địa chỉ');
+        } catch (err) {
+          toast.error('Lỗi khi xóa địa chỉ: ' + (err.message || 'Vui lòng thử lại'));
+        }
+      }
+    });
   };
 
   // Đặt địa chỉ làm mặc định
@@ -141,8 +155,9 @@ const CheckoutPage = () => {
       await shippingAddressApi.setDefault(id);
       fetchAddresses();
       setSelectedAddressId(id);
+      toast.success('Đã đặt làm địa chỉ mặc định');
     } catch (err) {
-      alert('Lỗi khi đặt địa chỉ mặc định');
+      toast.error('Lỗi khi đặt địa chỉ mặc định');
     }
   };
 
@@ -216,8 +231,8 @@ const CheckoutPage = () => {
         }
       } else {
         await cartApi.clearCart();
-        alert('Đặt hàng thành công! Thông tin đơn hàng đã được gửi tới email của bạn.');
-        navigate('/product-list');
+        toast.success('Đặt hàng thành công! Thông tin đơn hàng đã được gửi tới email của bạn.', 4000);
+        setTimeout(() => navigate('/product-list'), 2000);
       }
     } catch (err) {
       setError(err.message || 'Lỗi xử lý đơn hàng');
@@ -229,7 +244,18 @@ const CheckoutPage = () => {
   if (loading) return <div className="p-20 text-center animate-pulse text-blue-600 font-bold">Đang chuẩn bị đơn hàng...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 font-sans">
+    <>
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={handleClose}
+        onConfirm={handleConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+      />
+      <div className="min-h-screen bg-gray-50 py-8 font-sans">
       <div className="container mx-auto px-4 max-w-6xl">
         
         <div className="flex items-center justify-between mb-8">
@@ -530,7 +556,8 @@ const CheckoutPage = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
