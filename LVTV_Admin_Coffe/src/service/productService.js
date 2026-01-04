@@ -152,7 +152,7 @@ export const getProductImages = async (productId, variantId) => {
 // Lấy danh sách hình ảnh theo variant (trả về totalRecords và records)
 export const getImagesByVariant = async (variantId) => {
     try {
-        const response = await axiosClient.get(`/Product/variant/${variantId}/images`);
+        const response = await axiosClient.get(`/Image/by-variant/${variantId}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching images by variant:", error);
@@ -174,7 +174,7 @@ export const getImagesByProduct = async (productId) => {
 // Xóa hình ảnh
 export const deleteProductImage = async (imageId) => {
     try {
-        const response = await axiosClient.delete(`/Product/images/${imageId}`);
+        const response = await axiosClient.delete(`/Image/${imageId}`);
         return response.data;
     } catch (error) {
         console.error(`Error deleting image ${imageId}:`, error);

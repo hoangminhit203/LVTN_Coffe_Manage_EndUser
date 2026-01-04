@@ -18,6 +18,9 @@ export const orderApi = {
   updateStatus: (id, status) => api.patch(`/Order/${id}/status`, { status }),
 
   getHistory: () => api.get("/Order/history"),
+
+  // Tra cứu theo guestKey (dành cho khách vãng lai)
+  getByGuestKey: (guestKey) => api.get(`/Order/history?guestKey=${encodeURIComponent(guestKey)}`),
 }
 
 export default orderApi

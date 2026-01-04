@@ -264,7 +264,7 @@ const CartPage = () => {
                     
                     <div className="w-20 h-20 bg-gray-50 rounded-xl flex-shrink-0 flex items-center justify-center border">
                       <img 
-                        src={item.productImage || 'https://via.placeholder.com/80'} 
+                        src={item.productImage || item.imageUrl || item.image || 'https://via.placeholder.com/80'} 
                         alt={item.productName} 
                         className="w-16 h-16 object-contain"
                       />
