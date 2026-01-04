@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
 import { isAuthenticated } from '../utils/auth';
 import { useToast } from '../components/Toast/ToastContext';
+import Reviews from '../components/Review/Reviews';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -66,44 +67,39 @@ const ProductDetailPage = () => {
     }
   };
 
-  // --- HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG ---
+  // --- HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG (KHÔNG YÊU CẦU ĐĂNG NHẬP) ---
   const handleAddToCart = async () => {
-    if (!isAuthenticated()) {
-      alert('Vui lòng đăng nhập để mua hàng');
-      navigate('/login');
-      return;
-    }
-    
     // Lấy ID của biến thể đang chọn
     const variantId = selectedVariant?.variantId || selectedVariant?.id;
     
     if (!variantId) {
-      alert('Vui lòng chọn phiên bản sản phẩm');
+      toast.warning('Vui lòng chọn phiên bản sản phẩm');
       return;
     }
     
     // Kiểm tra stock trước khi thêm
     if (currentStock <= 0) {
-      alert('Sản phẩm đã hết hàng!');
+      toast.warning('Sản phẩm đã hết hàng!');
       return;
     }
     
     try {
       // Mặc định thêm số lượng là 1
       await cartApi.addItem(variantId, 1);
-      alert('Đã thêm vào giỏ hàng thành công!');
+      toast.success('Đã thêm vào giỏ hàng thành công!');
+      // Di chuyển người dùng sang trang giỏ hàng để họ kiểm tra
+      navigate('/cart');
     } catch (error) {
       // Xử lý lỗi chi tiết từ backend
       console.error('Lỗi thêm vào giỏ hàng:', error);
       
       let errorMessage = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
       
-      // Nếu backend trả về lỗi vượt quá số lượng tồn kho
       if (error.message) {
         errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -330,6 +326,11 @@ const ProductDetailPage = () => {
             </div>
 
           </div> {/* Kết thúc cột phải */}
+        </div>
+
+        {/* Reviews section */}
+        <div className="container mx-auto px-4 max-w-6xl">
+          <Reviews variantId={selectedVariant?.variantId || selectedVariant?.id} />
         </div>
       </div>
     </div>
