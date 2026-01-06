@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { Package, Save, Plus, Trash2, X, CheckCircle, Loader2 } from "lucide-react";
 
 // --- IMPORTS SERVICES ---
-import { getProductById, updateProduct, uploadProductImages } from "../../service/productService";
+import { getProductById, uploadProductImages, updateProduct, updateImageInfo } from "../../service/productService";
 import { getCategories } from "../../service/categoryService";
 import { getFlavorNotes } from "../../service/flavorNoteService";
 import { getBrewingMethods } from "../../service/brewingMethodsService";
@@ -109,102 +109,104 @@ const EditProduct = () => {
   };
 
   const loadProductData = async () => {
-    try {
-      setIsLoadingData(true);
-      const res = await getProductById(id);
-      
-      if (res.isSuccess && res.data) {
-        const product = res.data;
-        setCurrentProduct(product);
+  try {
+    setIsLoadingData(true);
+    const res = await getProductById(id);
 
-        // Set form values
-        reset({
-          name: product.name || "",
-          description: product.description || "",
-          categoryId: product.category?.[0]?.categoryId?.toString() || "",
-          flavorNoteIds: product.flavorNotes?.map(fn => fn.flavorNoteId) || [],
-          brewingMethodIds: product.brewingMethods?.map(bm => bm.brewingMethodId) || [],
-          variants: product.variants?.map(v => ({
-            variantId: v.variantId,
-            sku: v.sku || "",
-            price: v.price || 0,
-            stock: v.stock || 0,
-            roastLevel: v.roastLevel || "Medium",
-            beanType: v.beanType || "",
-            origin: v.origin || "",
-            acidity: v.acidity || 5,
-            weight: v.weight || 0,
-            certifications: v.certifications || "",
-          })) || [],
-        });
+    if (res.isSuccess && res.data) {
+      const product = res.data;
+      setCurrentProduct(product);
 
-        // Set variant ID đầu tiên (để load images)
-        if (product.variants && product.variants.length > 0) {
-          setCurrentVariantId(product.variants[0].variantId);
-        }
+      reset({
+        name: product.name || "",
+        description: product.description || "",
+        categoryId: product.category?.[0]?.categoryId?.toString() || "",
+        flavorNoteIds: product.flavorNotes?.map(fn => fn.flavorNoteId) || [],
+        brewingMethodIds: product.brewingMethods?.map(bm => bm.brewingMethodId) || [],
+
+        variants: product.variants?.map(v => ({
+          id: v.variantId,
+          sku: v.sku || "",
+          price: v.price || 0,
+          stock: v.stock || 0,
+          roastLevel: v.roastLevel || "Medium",
+          beanType: v.beanType || "",
+          origin: v.origin || "",
+          acidity: v.acidity || 5,
+          weight: v.weight || 0,
+          certifications: v.certifications || "",
+        })) || [],
+      });
+
+      // dùng id cho images
+      if (product.variants?.length > 0) {
+        setCurrentVariantId(product.variants[0].variantId);
       }
-    } catch (error) {
-      console.error("Error loading product:", error);
-      toast.error("Không thể tải thông tin sản phẩm");
-      navigate("/products");
-    } finally {
-      setIsLoadingData(false);
     }
-  };
+  } catch (error) {
+    console.error("Error loading product:", error);
+    toast.error("Không thể tải thông tin sản phẩm");
+    navigate("/products");
+  } finally {
+    setIsLoadingData(false);
+  }
+};
+
 
   // 7. Xử lý Submit
   const onSubmit = async (data) => {
-    setIsLoading(true);
-    try {
-      const parseIds = (val) => {
-         if (Array.isArray(val)) return val.map(Number);
-         return [];
-      };
+  setIsLoading(true);
+  try {
+    const parseIds = (val) => {
+      if (Array.isArray(val)) return val.map(Number);
+      return [];
+    };
 
-      const payload = {
-        name: data.name,
-        description: data.description,
-        categoryId: Number(data.categoryId),
-        flavorNoteIds: parseIds(data.flavorNoteIds),
-        brewingMethodIds: parseIds(data.brewingMethodIds),
-        variants: data.variants.map((v) => ({
-          variantId: v.variantId, // Giữ variantId để update
-          sku: v.sku,
-          price: Number(v.price),
-          stock: Number(v.stock),
-          roastLevel: v.roastLevel,
-          beanType: v.beanType,
-          origin: v.origin,
-          acidity: Number(v.acidity),
-          weight: Number(v.weight),
-          certifications: v.certifications,
-        })),
-      };
+    const payload = {
+      name: data.name,
+      description: data.description,
+      categoryId: Number(data.categoryId),
+      flavorNoteIds: parseIds(data.flavorNoteIds),
+      brewingMethodIds: parseIds(data.brewingMethodIds),
 
-      const res = await updateProduct(id, payload);
+      variants: data.variants.map((v) => ({
+        id: v.id,                       // ✅ CHỈ DÙNG id
+        sku: v.sku,
+        price: Number(v.price),
+        stock: Number(v.stock),
+        roastLevel: v.roastLevel,
+        beanType: v.beanType,
+        origin: v.origin,
+        acidity: Number(v.acidity),
+        weight: Number(v.weight),
+        certifications: v.certifications,
+      })),
+    };
 
-      if (res.isSuccess) {
-        // Upload images mới nếu có
-        if (images.length > 0 && currentVariantId) {
-          const filesToUpload = images.filter((img) => img.file).map((img) => img.file);
-          if (filesToUpload.length > 0) {
-            await uploadProductImages(id, currentVariantId, filesToUpload);
-          }
+    const res = await updateProduct(id, payload);
+
+    if (res.isSuccess) {
+      if (images.length > 0 && currentVariantId) {
+        const filesToUpload = images
+          .filter((img) => img.file)
+          .map((img) => img.file);
+
+        if (filesToUpload.length > 0) {
+          await updateImageInfo(id, currentVariantId, filesToUpload);
         }
-        
-        setShowSuccessNotification(true);
-        
-        setTimeout(() => {
-          navigate("/products");
-        }, 2000);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Cập nhật sản phẩm thất bại");
-    } finally {
-      setIsLoading(false);
+
+      setShowSuccessNotification(true);
+      setTimeout(() => navigate("/products"), 2000);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    toast.error(err.response?.data?.message || "Cập nhật sản phẩm thất bại");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // 8. Hàm Render Input
   const renderInput = (fieldConfig, fieldPath) => {
