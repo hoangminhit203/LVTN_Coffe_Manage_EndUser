@@ -7,7 +7,8 @@ import {
     deleteProductImage, 
     setMainImage, 
     getImagesByProduct,
-    getImagesByVariant 
+    getImagesByVariant,
+    updateImageInfo,
 } from "../../service/productService";
 
 const ProductImages = ({ 
@@ -15,8 +16,7 @@ const ProductImages = ({
     variantId, 
     images, 
     setImages, 
-    imageErrors, 
-    setImageErrors, 
+    imageErrors,  
     watch, 
     isEditing 
 }) => {
@@ -180,6 +180,23 @@ const ProductImages = ({
         }
     };
 
+    // 4.b Thay ảnh hiện có (Replace) - chọn file và PUT multipart FormData
+    const handleReplaceImage = async (index, imageId, file) => {
+        if (!file || !imageId) return;
+        try {
+            setIsLoading(true);
+            // updateImageInfo hỗ trợ truyền File và tự tạo FormData bên service
+            await updateImageInfo(imageId, file);
+            toast.success("Đã thay ảnh thành công!");
+            await loadImages();
+        } catch (error) {
+            console.error("Error replacing image:", error);
+            toast.error("Thay ảnh thất bại");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
             <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-100 border-b pb-2">
@@ -216,6 +233,12 @@ const ProductImages = ({
 
                                     {/* Overlay Actions */}
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                        {/* Nút Replace (Thay ảnh) */}
+                                        <label title="Thay ảnh" className="bg-white/90 hover:bg-white text-indigo-600 rounded px-2 py-1 text-xs font-semibold shadow-sm flex items-center gap-1 cursor-pointer">
+                                            <Upload className="w-3 h-3" /> Thay
+                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleReplaceImage(index, image.id, file); e.target.value = ""; }} />
+                                        </label>
+
                                         {/* Nút Set Main (Hiện nếu chưa phải là ảnh chính) */}
                                         {(!image.isMain && (isEditing || index !== 0)) && (
                                             <button

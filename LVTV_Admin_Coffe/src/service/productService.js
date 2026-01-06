@@ -206,9 +206,39 @@ export const updateImageSortOrder = async (productId, variantId, imagesOrder) =>
 };
 
 // Cập nhật thông tin hình ảnh
-export const updateImageInfo = async (imageId, imageData) => {
+// Hỗ trợ 3 trường hợp:
+// 1) JSON body (hiện tại behavior cũ)
+// 2) FormData (caller đã tạo sẵn FormData với File/IsMain/...)
+// 3) File object (tự tạo FormData từ File và các tuỳ chọn trong `extra`)
+export const updateImageInfo = async (imageId, imageData, extra = {}) => {
     try {
-        const response = await axiosClient.put(`/Product/images/${imageId}`, imageData);
+        // Nếu caller truyền vào FormData -> gửi multipart/form-data
+        if (typeof FormData !== "undefined" && imageData instanceof FormData) {
+            const response = await axiosClient.put(`/Image/${imageId}`, imageData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            return response.data;
+        }
+
+        // Nếu caller truyền vào File hoặc object dạng { file: File }
+        if (
+            (typeof File !== "undefined" && imageData instanceof File) ||
+            (imageData && imageData.file && typeof File !== "undefined" && imageData.file instanceof File)
+        ) {
+            const file = imageData instanceof File ? imageData : imageData.file;
+            const formData = new FormData();
+            formData.append("File", file);
+            if (extra.IsMain !== undefined) formData.append("IsMain", extra.IsMain);
+            if (extra.SortOrder !== undefined) formData.append("SortOrder", extra.SortOrder);
+
+            const response = await axiosClient.put(`/Image/${imageId}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            return response.data;
+        }
+
+        // Mặc định: gửi JSON như trước
+        const response = await axiosClient.put(`/Image/${imageId}`, imageData);
         return response.data;
     } catch (error) {
         console.error(`Error updating image ${imageId}:`, error);
