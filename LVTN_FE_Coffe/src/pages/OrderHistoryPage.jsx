@@ -1,37 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { orderApi } from '../components/Api/order';
-import { FaBox, FaClock, FaChevronRight, FaShoppingBag } from 'react-icons/fa';
+import { isAuthenticated } from '../utils/auth';
+import { FaBox, FaClock, FaChevronRight, FaShoppingBag, FaSearch, FaUser } from 'react-icons/fa';
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchOrderId, setSearchOrderId] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        // Backend của bạn dùng X-Guest-Key để filter đơn hàng cho Guest
-        const response = await orderApi.getHistory();
-        console.log('🔔 order history raw response:', response);
-        const data = response.data || response;
-        console.log('🔔 resolved orders array:', data);
-        // Log image URLs to help debug missing images
-        if (Array.isArray(data)) {
-          data.forEach((o) => {
-            const items = o.items || o.orderItems || [];
-            items.forEach((it) => console.log(`Order ${o.id} item ${it.id} image:`, it.imageUrl || it.productImage || it.image));
-          });
+    const checkAuthAndFetchOrders = async () => {
+      const authenticated = isAuthenticated();
+      setIsLoggedIn(authenticated);
+
+      if (authenticated) {
+        // Chỉ fetch history nếu user đã đăng nhập
+        try {
+          setLoading(true);
+          const response = await orderApi.getHistory();
+          console.log('🔔 order history raw response:', response);
+          const data = response.data || response;
+          console.log('🔔 resolved orders array:', data);
+          // Log image URLs to help debug missing images
+          if (Array.isArray(data)) {
+            data.forEach((o) => {
+              const items = o.items || o.orderItems || [];
+              items.forEach((it) => console.log(`Order ${o.id} item ${it.id} image:`, it.imageUrl || it.productImage || it.image));
+            });
+          }
+          setOrders(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error("Lỗi lấy lịch sử đơn hàng:", err);
+        } finally {
+          setLoading(false);
         }
-        setOrders(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Lỗi lấy lịch sử đơn hàng:", err);
-      } finally {
+      } else {
         setLoading(false);
       }
     };
-    fetchOrders();
+    checkAuthAndFetchOrders();
   }, []);
 
   const getStatusColor = (status) => {
@@ -52,27 +64,152 @@ const OrderHistoryPage = () => {
     return Number(price || 0).toLocaleString('vi-VN') + 'đ';
   };
 
+  const handleSearchOrder = async (e) => {
+    e.preventDefault();
+    if (!searchOrderId.trim()) {
+      setSearchError('Vui lòng nhập mã đơn hàng');
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+      setSearchError('');
+      const response = await orderApi.getById(searchOrderId);
+      const data = response.data || response;
+      
+      if (data) {
+        // Replace orders with just the searched order
+        setOrders([data]);
+        setExpandedOrderId(data.id);
+      } else {
+        setSearchError('Không tìm thấy đơn hàng');
+        setOrders([]);
+      }
+    } catch (err) {
+      console.error("Lỗi tra cứu đơn hàng:", err);
+      setSearchError('Không tìm thấy đơn hàng hoặc có lỗi xảy ra');
+      setOrders([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleResetSearch = () => {
+    setSearchOrderId('');
+    setSearchError('');
+    
+    // Chỉ reload orders nếu user đã đăng nhập
+    if (isLoggedIn) {
+      const fetchOrders = async () => {
+        try {
+          setLoading(true);
+          const response = await orderApi.getHistory();
+          const data = response.data || response;
+          setOrders(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error("Lỗi lấy lịch sử đơn hàng:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchOrders();
+    } else {
+      // Nếu chưa đăng nhập, chỉ reset về trạng thái rỗng
+      setOrders([]);
+    }
+  };
+
   if (loading) return <div className="p-20 text-center font-bold text-blue-600 animate-pulse">ĐANG TẢI LỊCH SỬ ĐƠN HÀNG...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-3xl font-black text-gray-800 mb-8 flex items-center gap-3">
-          <FaBox className="text-blue-600" /> ĐƠN HÀNG CỦA TÔI
+          <FaBox className="text-blue-600" /> 
+          {isLoggedIn ? 'ĐƠN HÀNG CỦA TÔI' : 'TRA CỨU ĐƠN HÀNG'}
         </h1>
+
+        {/* Thông báo nếu chưa đăng nhập */}
+        {/* {!isLoggedIn && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+            <FaUser className="text-blue-600 text-xl" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-800">
+                Bạn chưa đăng nhập. Vui lòng nhập mã đơn hàng để tra cứu.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/login')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition"
+            >
+              Đăng nhập
+            </button>
+          </div>
+        )} */}
+
+        {/* Search Box */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <form onSubmit={handleSearchOrder} className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Tra cứu đơn hàng theo mã
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchOrderId}
+                  onChange={(e) => {
+                    setSearchOrderId(e.target.value);
+                    setSearchError('');
+                  }}
+                  placeholder="Nhập mã đơn hàng..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <FaSearch className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+              {searchError && (
+                <p className="text-red-500 text-sm mt-1">{searchError}</p>
+              )}
+            </div>
+            <div className="flex gap-2 items-end">
+              <button
+                type="submit"
+                disabled={searchLoading}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {searchLoading ? 'Đang tìm...' : 'Tìm kiếm'}
+              </button>
+              {(searchOrderId || orders.length > 0) && (
+                <button
+                  type="button"
+                  onClick={handleResetSearch}
+                  className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-300 transition"
+                >
+                  {isLoggedIn ? 'Đặt lại' : 'Xóa'}
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
 
         {orders.length === 0 ? (
           <div className="bg-white rounded-3xl p-16 text-center shadow-sm border border-gray-100">
             <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaShoppingBag className="text-gray-300 text-3xl" />
             </div>
-            <p className="text-gray-500 text-lg mb-6">Bạn chưa có đơn hàng nào được thực hiện.</p>
-            <button 
-              onClick={() => navigate('/product-list')}
-              className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg"
-            >
-              MUA SẮM NGAY
-            </button>
+            <p className="text-gray-500 text-lg mb-6">
+              {isLoggedIn 
+                ? 'Bạn chưa có đơn hàng nào được thực hiện.' 
+                : 'Nhập mã đơn hàng để tra cứu thông tin.'}
+            </p>
+            {isLoggedIn && (
+              <button 
+                onClick={() => navigate('/product-list')}
+                className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg"
+              >
+                MUA SẮM NGAY
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid gap-4">
