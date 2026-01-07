@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { cartApi, paymentApi } from '../components/Api/products';
+import { cartApi, paymentApi, promotionApi } from '../components/Api/products';
 import orderApi from '../components/Api/order';
 import shippingAddressApi from '../components/Api/ShippingAddress';
 import { isAuthenticated } from '../utils/auth';
@@ -24,6 +24,9 @@ const CheckoutPage = () => {
   const [shippingFee, setShippingFee] = useState(30000);
   const [note, setNote] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [applyingPromo, setApplyingPromo] = useState(false);
   const toast = useToast();
   const { confirmState, confirm, handleClose, handleConfirm } = useConfirm();
   
@@ -195,7 +198,7 @@ const CheckoutPage = () => {
           receiverEmail: selectedAddress.email || '', // Lấy email từ địa chỉ
           shippingAddress: selectedAddress.fullAddress,
           shippingMethod: 'GHTK',
-          voucherCode: voucherCode || null,
+          promotionCode: appliedVoucher || voucherCode || null,
           note: note,
           orderItems: cart.items.map(item => ({
             productVariantId: item.productVariantId || item.id,
@@ -211,7 +214,7 @@ const CheckoutPage = () => {
           receiverEmail: guestInfo.email,
           shippingAddress: guestInfo.address,
           shippingMethod: 'GHTK',
-          voucherCode: voucherCode || null,
+          promotionCode: appliedVoucher || voucherCode || null,
           note: note,
           orderItems: cart.items.map(item => ({
             productVariantId: item.productVariantId || item.id,
@@ -407,10 +410,41 @@ const CheckoutPage = () => {
                     value={voucherCode}
                     onChange={e => setVoucherCode(e.target.value.toUpperCase())}
                   />
-                  <button className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition">
-                    Áp dụng
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      if (!voucherCode) { toast.warning('Vui lòng nhập mã giảm giá'); return; }
+                      if (!cart) { toast.error('Không có giỏ hàng'); return; }
+                      try {
+                        setApplyingPromo(true);
+                        const orderTotal = cart.totalPrice || 0;
+                        const res = await promotionApi.apply(voucherCode, orderTotal);
+                        if (res && res.isSuccess) {
+                          const discount = Number(res.data?.discountAmount || 0);
+                          setDiscountAmount(discount);
+                          setAppliedVoucher(voucherCode);
+                          toast.success(res.message || 'Mã giảm giá đã được áp dụng');
+                        } else {
+                          const msg = (res && res.message) || 'Mã khuyến mãi không hợp lệ';
+                          toast.error(msg);
+                        }
+                      } catch (err) {
+                        toast.error(err.message || 'Lỗi khi áp dụng mã');
+                      } finally {
+                        setApplyingPromo(false);
+                      }
+                    }}
+                    className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition">
+                    {applyingPromo ? 'Đang áp dụng...' : 'Áp dụng'}
                   </button>
                 </div>
+                {appliedVoucher && (
+                  <div className="mt-3 text-sm text-green-700 flex items-center gap-3">
+                    <span className="font-medium">Đã áp dụng:</span>
+                    <span className="px-3 py-1 bg-green-100 rounded">{appliedVoucher}</span>
+                    <button onClick={(e) => { e.preventDefault(); setAppliedVoucher(null); setDiscountAmount(0); toast.info('Đã gỡ mã'); }} className="text-xs text-red-600 ml-2">Gỡ</button>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -444,7 +478,7 @@ const CheckoutPage = () => {
                 ))}
               </div>
 
-              <div className="space-y-3 pt-6 border-t border-dashed">
+                <div className="space-y-3 pt-6 border-t border-dashed">
                 <div className="flex justify-between text-gray-500">
                   <span>Tạm tính</span>
                   <span>{cart.totalPrice.toLocaleString()}đ</span>
@@ -453,9 +487,15 @@ const CheckoutPage = () => {
                   <span>Phí vận chuyển</span>
                   <span>{shippingFee.toLocaleString()}đ</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-gray-500">
+                    <span>Giảm giá</span>
+                    <span className="text-green-600">-{discountAmount.toLocaleString()}đ</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-2xl font-black text-red-600 pt-4">
                   <span>Tổng cộng</span>
-                  <span>{(cart.totalPrice + shippingFee).toLocaleString()}đ</span>
+                  <span>{Math.max(0, (cart.totalPrice - discountAmount + shippingFee)).toLocaleString()}đ</span>
                 </div>
               </div>
 
