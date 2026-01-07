@@ -143,6 +143,9 @@ export const orderApi = {
 export const newsApi = {
   getAll: () => api.get("/News"),
 }
+export const promotionApi = {
+  apply: (code, orderTotal) => api.get(`/Promotion/apply?code=${encodeURIComponent(code)}&orderTotal=${orderTotal}`),
+}
 export const paymentApi = {
   createVnPayUrl: async (orderId) => {
     const response = await api.post(`/Payment/create-vnpay-url/${orderId}`)

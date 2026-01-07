@@ -310,7 +310,7 @@ const OrderHistoryPage = () => {
                                   <td className="py-4 font-medium">{it.productName}</td>
                                   <td className="py-4">{formatPrice(it.priceAtPurchase || it.productPrice)}</td>
                                   <td className="py-4">{it.quantity}</td>
-                                  <td className="py-4 font-black text-right">{formatPrice(it.subtotal || (it.priceAtPurchase || it.productPrice) * it.quantity)}</td>
+                                  <td className="py-4 font-black text-left">{formatPrice(it.subtotal || (it.priceAtPurchase || it.productPrice) * it.quantity)}</td>
                                 </tr>
                               ))
                             ) : (

@@ -88,6 +88,23 @@ const Order = () => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
     };
 
+    const computeSubTotal = (o) => {
+        if (!o) return 0;
+        if (o.totalAmount != null) return Number(o.totalAmount);
+        if (o.subTotal != null) return Number(o.subTotal);
+        const items = o.items || o.orderItems || [];
+        return items.reduce((s, i) => s + ((i.priceAtPurchase || i.price || 0) * (i.quantity || 0)), 0);
+    };
+
+    const getShipping = (o) => Number(o?.shippingFee ?? o?.shipping ?? 0);
+    const getDiscount = (o) => Number(o?.discountAmount ?? 0);
+    const getFinal = (o) => {
+        if (!o) return 0;
+        if (o.finalAmount != null) return Number(o.finalAmount);
+        const sub = computeSubTotal(o);
+        return Math.max(0, sub + getShipping(o) - getDiscount(o));
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 font-sans">
             <div className="mx-auto max-w-4xl space-y-6">
@@ -199,9 +216,15 @@ const Order = () => {
 
                             <div className="flex justify-end">
                                 <div className="w-full sm:w-1/3 bg-gray-50 dark:bg-gray-900 p-4 rounded">
-                                    <div className="flex justify-between text-sm text-gray-600">Tạm tính <span className="font-medium text-gray-900">{formatCurrency(order.subTotal || order.items?.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0))}</span></div>
-                                    <div className="flex justify-between text-sm text-gray-600">Phí vận chuyển <span className="font-medium text-gray-900">{formatCurrency(order.shippingFee || order.shipping || 0)}</span></div>
-                                    <div className="flex justify-between text-base font-semibold text-gray-900 mt-2">Tổng cộng <span>{formatCurrency(order.totalAmount || order.totalPrice || order.amount || 0)}</span></div>
+                                    <div className="flex justify-between text-sm text-gray-600">Tạm tính <span className="font-medium text-gray-900">{formatCurrency(computeSubTotal(order))}</span></div>
+                                    <div className="flex justify-between text-sm text-gray-600">Phí vận chuyển <span className="font-medium text-gray-900">{formatCurrency(getShipping(order))}</span></div>
+                                    {getDiscount(order) > 0 && (
+                                        <div className="flex justify-between text-sm text-green-600">Giảm giá <span className="font-medium">-{formatCurrency(getDiscount(order))}</span></div>
+                                    )}
+                                    <div className="flex justify-between text-base font-semibold text-gray-900 mt-2">Tổng cộng <span>{formatCurrency(getFinal(order))}</span></div>
+                                    {order.promotionCode && (
+                                        <div className="mt-2 text-xs text-gray-500">Mã khuyến mãi: {order.promotionCode}</div>
+                                    )}
                                 </div>
                             </div>
                         </div>
