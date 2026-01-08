@@ -58,6 +58,16 @@ export const navbarLinks = [
         ],
     },
     {
+        title: "Marketing",
+        links: [
+            {
+                label: "Promotions",
+                icon: PackagePlus,
+                path: "/promotions",
+            },
+        ],
+    },
+    {
         title: "Products",
         links: [
             {
@@ -69,11 +79,6 @@ export const navbarLinks = [
                 label: "New product",
                 icon: PackagePlus,
                 path: "/products/new",
-            },
-            {
-                label: "Inventory",
-                icon: ShoppingBag,
-                path: "/inventory",
             },
         ],
     },
@@ -89,11 +94,6 @@ export const navbarLinks = [
                 label: "Brewing Methods",
                 icon: PanelTop,
                 path: "/brewingmethods",
-            },
-            {
-                label: "Inventory",
-                icon: ShoppingBag,
-                path: "/inventory",
             },
         ],
     },
@@ -117,6 +117,7 @@ export const navbarLinks = [
             },
         ],
     },
+    
   
 ];
 
