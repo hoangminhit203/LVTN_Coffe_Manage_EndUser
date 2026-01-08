@@ -13,6 +13,7 @@ import EditProduct from "@/components/product/EditProduct";
 import NotFoundPage from "@/routes/not-found/page";
 import OrderPage from "@/routes/order/page";
 import Order from "@/components/order/Order";
+import PromotionPage from "@/routes/promotion/page";
 
 function App() {
     const router = createBrowserRouter([
@@ -45,6 +46,10 @@ function App() {
                     element: <NewProduct />,
                 },
                 {
+                    path: "promotions",
+                    element: <PromotionPage />,
+                },
+                {
                     path: "orders",
                     element: <OrderPage />,
                 },
@@ -75,10 +80,6 @@ function App() {
                 {
                     path: "products/edit/:id",
                     element: <EditProduct />,
-                },
-                {
-                    path: "inventory",
-                    element: <h1 className="title">Inventory</h1>,
                 },
                 {
                     path: "settings",
