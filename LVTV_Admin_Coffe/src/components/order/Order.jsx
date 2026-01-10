@@ -150,17 +150,17 @@ const Order = () => {
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <div className="text-sm text-gray-500">Mã đơn</div>
-                                    <div className="font-medium text-gray-900">{order.orderCode || order.orderId}</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">Mã đơn</div>
+                                    <div className="font-medium text-gray-900 dark:text-white">{order.id || order.orderCode || order.orderId}</div>
                                 </div>
                                 <div>
-                                    <div className="text-sm text-gray-500">Trạng thái</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">Trạng thái</div>
                                     <div className="mt-1">
                                         <select
                                             value={(order.status || '').toLowerCase()}
                                             onChange={(e) => handleUpdateStatus(e.target.value)}
                                             disabled={updating}
-                                            className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-sm"
+                                            className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-sm text-gray-900 dark:text-white"
                                         >
                                             {STATUSES.map((s) => (
                                                 <option key={s} value={s.toLowerCase()}>{s}</option>
@@ -170,43 +170,64 @@ const Order = () => {
                                 </div>
 
                                 <div>
-                                    <div className="text-sm text-gray-500">Khách hàng</div>
-                                    <div className="font-medium text-gray-900">{order.customerName || order.customer?.fullName || order.customer?.name || "--"}</div>
-                                    <div className="text-sm text-gray-500">{order.customer?.email}</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">Người nhận</div>
+                                    <div className="font-medium text-gray-900 dark:text-white">{order.receiverName || order.customerName || order.customer?.fullName || order.customer?.name || "--"}</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">{order.receiverPhone || order.customer?.phone || "--"}</div>
+                                    {/* <div className="text-sm text-gray-500 dark:text-gray-400">{order.receiverEmail || order.customer?.email || "--"}</div> */}
                                 </div>
                                 <div>
-                                    <div className="text-sm text-gray-500">Ngày đặt</div>
-                                    <div className="font-medium text-gray-900">{new Date(order.createdAt).toLocaleString()}</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">Ngày đặt</div>
+                                    <div className="font-medium text-gray-900 dark:text-white">{new Date(order.createdAt).toLocaleString('vi-VN')}</div>
+                                </div>
+
+                                <div className="col-span-2">
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">Địa chỉ giao hàng</div>
+                                    <div className="font-medium text-gray-900 dark:text-white">{order.shippingAddress || "--"}</div>
+                                </div>
+
+                                <div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">Phương thức vận chuyển</div>
+                                    <div className="font-medium text-gray-900 dark:text-white">{order.shippingMethod || "--"}</div>
+                                </div>
+                                <div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">Số lượng sản phẩm</div>
+                                    <div className="font-medium text-gray-900 dark:text-white">{order.itemCount || (order.orderItems?.length || 0)}</div>
                                 </div>
                             </div>
 
                             <div>
-                                <h3 className="text-sm font-medium text-gray-700">Sản phẩm</h3>
+                                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Sản phẩm</h3>
                                 <div className="mt-2 overflow-x-auto">
-                                    <table className="w-full text-left text-sm text-gray-500">
-                                        <thead className="text-xs text-gray-700 uppercase">
+                                    <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+                                        <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
                                             <tr>
-                                                <th className="px-4 py-2">#</th>
-                                                <th className="px-4 py-2">Tên</th>
+                                                <th className="px-4 py-2">Hình ảnh</th>
+                                                <th className="px-4 py-2">Tên sản phẩm</th>
                                                 <th className="px-4 py-2 text-right">Số lượng</th>
                                                 <th className="px-4 py-2 text-right">Giá</th>
-                                                <th className="px-4 py-2 text-right">Tạm tính</th>
+                                                <th className="px-4 py-2 text-right">Tổng</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                             {((order.orderItems && order.orderItems.length > 0) || (order.items && order.items.length > 0)) ? (
                                             (order.orderItems || order.items).map((it, idx) => (
-                                                <tr key={idx}>
-                                                    <td className="px-4 py-3">{idx + 1}</td>
-                                                    <td className="px-4 py-3">{it.productName || it.product?.name || it.name}</td>
-                                                    <td className="px-4 py-3 text-right">{it.quantity}</td>
-                                                    <td className="px-4 py-3 text-right">{formatCurrency(it.priceAtPurchase || it.price)}</td>
-                                                    <td className="px-4 py-3 text-right">{formatCurrency((it.priceAtPurchase || it.price || 0) * (it.quantity || 0))}</td>
+                                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                                    <td className="px-4 py-3">
+                                                        {it.imageUrl ? (
+                                                            <img src={it.imageUrl} alt={it.productName} className="w-12 h-12 object-cover rounded" />
+                                                        ) : (
+                                                            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center text-xs text-gray-400">N/A</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-gray-900 dark:text-white">{it.productName || it.product?.name || it.name}</td>
+                                                    <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{it.quantity}</td>
+                                                    <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{formatCurrency(it.priceAtPurchase || it.price)}</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">{formatCurrency(it.subtotal || ((it.priceAtPurchase || it.price || 0) * (it.quantity || 0)))}</td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">Không có sản phẩm</td>
+                                                <td colSpan={5} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">Không có sản phẩm</td>
                                             </tr>
                                         )}
                                         </tbody>
@@ -215,16 +236,33 @@ const Order = () => {
                             </div>
 
                             <div className="flex justify-end">
-                                <div className="w-full sm:w-1/3 bg-gray-50 dark:bg-gray-900 p-4 rounded">
-                                    <div className="flex justify-between text-sm text-gray-600">Tạm tính <span className="font-medium text-gray-900">{formatCurrency(computeSubTotal(order))}</span></div>
-                                    <div className="flex justify-between text-sm text-gray-600">Phí vận chuyển <span className="font-medium text-gray-900">{formatCurrency(getShipping(order))}</span></div>
+                                <div className="w-full sm:w-1/3 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg space-y-2">
+                                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                                        <span>Tạm tính</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(computeSubTotal(order))}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                                        <span>Phí vận chuyển</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(getShipping(order))}</span>
+                                    </div>
                                     {getDiscount(order) > 0 && (
-                                        <div className="flex justify-between text-sm text-green-600">Giảm giá <span className="font-medium">-{formatCurrency(getDiscount(order))}</span></div>
+                                        <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                                            <span>Giảm giá</span>
+                                            <span className="font-medium">-{formatCurrency(getDiscount(order))}</span>
+                                        </div>
                                     )}
-                                    <div className="flex justify-between text-base font-semibold text-gray-900 mt-2">Tổng cộng <span>{formatCurrency(getFinal(order))}</span></div>
                                     {order.promotionCode && (
-                                        <div className="mt-2 text-xs text-gray-500">Mã khuyến mãi: {order.promotionCode}</div>
+                                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                                            <span>Mã khuyến mãi:</span>
+                                            <span className="font-mono">{order.promotionCode}</span>
+                                        </div>
                                     )}
+                                    <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                                        <div className="flex justify-between text-base font-semibold text-gray-900 dark:text-white">
+                                            <span>Tổng cộng</span>
+                                            <span className="text-lg">{formatCurrency(getFinal(order))}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
