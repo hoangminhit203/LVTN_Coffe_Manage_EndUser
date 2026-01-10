@@ -43,7 +43,7 @@ export const navbarLinks = [
             {
                 label: "Customers",
                 icon: Users,
-                path: "/customers",
+                path: "/users",
             },
             {
                 label: "New customer",
