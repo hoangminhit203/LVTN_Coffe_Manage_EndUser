@@ -14,6 +14,7 @@ import NotFoundPage from "@/routes/not-found/page";
 import OrderPage from "@/routes/order/page";
 import Order from "@/components/order/Order";
 import PromotionPage from "@/routes/promotion/page";
+import BannerPage from "@/routes/banner/page";
 import UserPage from "@/routes/user/page";
 function App() {
     const router = createBrowserRouter([
@@ -48,6 +49,10 @@ function App() {
                 {
                     path: "promotions",
                     element: <PromotionPage />,
+                },
+                {
+                    path: "banners",
+                    element: <BannerPage />,
                 },
                 {
                     path: "orders",

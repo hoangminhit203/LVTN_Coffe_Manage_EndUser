@@ -65,6 +65,11 @@ export const navbarLinks = [
                 icon: PackagePlus,
                 path: "/promotions",
             },
+            {
+                label: "Banners",
+                icon: Package,
+                path: "/banners",
+            },
         ],
     },
     {
