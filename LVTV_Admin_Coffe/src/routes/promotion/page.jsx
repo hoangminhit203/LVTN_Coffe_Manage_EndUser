@@ -110,7 +110,7 @@ const PromotionPage = () => {
     return (
         <div className="p-6 min-h-screen bg-white dark:bg-slate-900 transition-colors">
             {notification.show && (
-                <div className={`fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300`}>
+                <div className={`fixed top-4 right-4 z-[9999] animate-in slide-in-from-top-2 duration-300 pointer-events-auto`}>
                     <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg ${notification.type === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}>
                         {notification.type === "success" ? <CheckCircle size={20} /> : <XCircle size={20} />}
                         <span className="font-medium">{notification.message}</span>
