@@ -66,6 +66,10 @@ function App() {
                     path: "/users",
                     element: <UserPage />,
                 },
+                 {
+                    path: "/users",
+                    element: <UserPage />,
+                },
                 {
                     path: "analytics",
                     element: <h1 className="title">Analytics</h1>,
