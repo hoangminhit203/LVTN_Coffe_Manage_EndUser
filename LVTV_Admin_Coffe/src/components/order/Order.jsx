@@ -16,7 +16,7 @@ const Order = () => {
     const [updating, setUpdating] = useState(false);
     const [notification, setNotification] = useState({ show: false, type: "", message: "" });
 
-    useEffect(() => {
+    useEffect(() => {	
         if (id) fetchOrder();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);

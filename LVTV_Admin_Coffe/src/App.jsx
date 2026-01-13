@@ -62,17 +62,9 @@ function App() {
                     path: "orders/:id",
                     element: <Order />,
                 },
-                 {
-                    path: "/users",
-                    element: <UserPage />,
-                },
-                 {
-                    path: "/users",
-                    element: <UserPage />,
-                },
                 {
-                    path: "analytics",
-                    element: <h1 className="title">Analytics</h1>,
+                    path: "users",
+                    element: <UserPage />,
                 },
                 {
                     path: "reports",
