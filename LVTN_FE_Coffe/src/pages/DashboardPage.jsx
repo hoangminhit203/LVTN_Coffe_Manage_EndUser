@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { logout, getUserFromToken } from "../utils/auth";
 
 // Import các trang của bạn vào đây
-import OrderPage from "./OrderPage"; 
 import CartPage from "./CartPage"; 
+import OrderHistoryPage from "./OrderHistoryPage";
 
 import { 
   FaShoppingCart, FaHistory, FaSignOutAlt, 
-  FaUserCircle, FaChevronRight 
+  FaUserCircle, FaChevronRight
 } from "react-icons/fa";
 
 const DashboardPage = () => {
@@ -33,7 +33,7 @@ const DashboardPage = () => {
             </div>
             
             <nav className="p-4">
-              {/* Filter: Đơn hàng */}
+              {/* Filter: Đơn hàng & Lịch sử (gộp lại) */}
               <button 
                 onClick={() => setActiveTab("orders")}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl mb-2 transition-all cursor-pointer ${
@@ -42,7 +42,7 @@ const DashboardPage = () => {
                   : 'text-gray-500 hover:bg-gray-50'
                 }`}
               >
-                <span className="flex items-center gap-3"><FaHistory /> Đơn đặt hàng</span>
+                <span className="flex items-center gap-3"><FaHistory /> Đơn hàng của tôi</span>
                 <FaChevronRight size={10} />
               </button>
 
@@ -76,9 +76,9 @@ const DashboardPage = () => {
           <div className="bg-white rounded-3xl shadow-sm p-2 md:p-8 border border-gray-100 min-h-[700px]">
             
             {activeTab === "orders" ? (
-              /* Gọi component OrderPage vào đây */
+              /* Gọi OrderHistoryPage - có đầy đủ tính năng xem chi tiết và yêu cầu hoàn trả */
               <div className="animate-in fade-in duration-500">
-                <OrderPage />
+                <OrderHistoryPage />
               </div>
             ) : (
               /* Gọi component CartPage vào đây */

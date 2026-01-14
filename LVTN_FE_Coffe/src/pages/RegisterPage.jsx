@@ -124,7 +124,7 @@ const RegisterPage = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Tên Đầy Đủ *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Tên Người Dùng *</label>
         <input
           type="text"
           name="userName"

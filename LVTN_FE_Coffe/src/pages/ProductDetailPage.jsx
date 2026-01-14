@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// Giả định đường dẫn import đúng, hãy chỉnh lại nếu file nằm chỗ khác
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
 import { isAuthenticated } from '../utils/auth';
 import { useToast } from '../components/Toast/ToastContext';
@@ -10,164 +9,143 @@ const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  
-  // --- STATE QUẢN LÝ DỮ LIỆU ---
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedVariant, setSelectedVariant] = useState(null); // Biến thể đang chọn (size, loại hạt...)
-  const [selectedImage, setSelectedImage] = useState(null);     // Ảnh đang hiển thị to
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
-  // --- EFFECT: TẢI SẢN PHẨM KHI CÓ ID ---
   useEffect(() => {
     if (id) fetchProduct();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // --- HÀM GỌI API LẤY CHI TIẾT SẢN PHẨM ---
   const fetchProduct = async () => {
     try {
       setLoading(true);
       const res = await productApi.getById(id);
-      
-      // Xử lý dữ liệu linh hoạt (đề phòng API trả về dạng { data: ... } hoặc trả trực tiếp)
       const productData = res?.data || res;
       setProduct(productData);
-      
-      // Logic chọn mặc định Variant đầu tiên và Ảnh đầu tiên khi mới vào trang
+
       if (productData?.variants?.length > 0) {
         const defaultVariant = productData.variants[0];
         setSelectedVariant(defaultVariant);
-        
+
         if (defaultVariant?.images?.length > 0) {
-          // Ưu tiên ảnh isMain, nếu không có thì lấy ảnh đầu tiên
-          const mainImage = defaultVariant.images.find(img => img.isMain) || defaultVariant.images[0];
+          const mainImage =
+            defaultVariant.images.find(img => img.isMain) ||
+            defaultVariant.images[0];
           setSelectedImage(mainImage);
         }
       }
     } catch (err) {
-      console.error('Lỗi tải chi tiết sản phẩm:', err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- HÀM XỬ LÝ THÊM VÀO WISHLIST ---
   const handleAddToWishlist = async () => {
     if (!isAuthenticated()) {
-      toast.warning('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+      toast.warning('Vui lòng đăng nhập');
       setTimeout(() => navigate('/login'), 1500);
       return;
     }
 
     try {
       await wishlistApi.add(id);
-      toast.success('Đã thêm sản phẩm vào danh sách yêu thích! ♥');
+      toast.success('Đã thêm vào yêu thích ♥');
     } catch (error) {
-      toast.error(error.message || 'Sản phẩm đã có trong danh sách yêu thích');
+      toast.error(error.message || 'Đã tồn tại trong wishlist');
     }
   };
 
-  // --- HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG (KHÔNG YÊU CẦU ĐĂNG NHẬP) ---
   const handleAddToCart = async () => {
-    // Lấy ID của biến thể đang chọn
     const variantId = selectedVariant?.variantId || selectedVariant?.id;
-    
     if (!variantId) {
-      toast.warning('Vui lòng chọn phiên bản sản phẩm');
+      toast.warning('Vui lòng chọn phiên bản');
       return;
     }
-    
-    // Kiểm tra stock trước khi thêm
+
     if (currentStock <= 0) {
-      toast.warning('Sản phẩm đã hết hàng!');
+      toast.warning('Hết hàng');
       return;
     }
-    
+
     try {
-      // Mặc định thêm số lượng là 1
       await cartApi.addItem(variantId, 1);
-      toast.success('Đã thêm vào giỏ hàng thành công!');
-      // Di chuyển người dùng sang trang giỏ hàng để họ kiểm tra
+      toast.success('Đã thêm vào giỏ hàng');
       navigate('/cart');
     } catch (error) {
-      // Xử lý lỗi chi tiết từ backend
-      console.error('Lỗi thêm vào giỏ hàng:', error);
-      
-      let errorMessage = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error.message || 'Không thể thêm giỏ hàng');
     }
   };
 
-  // --- CÁC HÀM HELPER HIỂN THỊ ---
-  const formatPrice = (price) => Number(price).toLocaleString('vi-VN') + ' đ';
+  const formatPrice = price =>
+    Number(price).toLocaleString('vi-VN') + ' đ';
 
-  const renderStockStatus = (stock) => {
-    if (stock > 0) {
-      return <span className="text-green-600 font-medium">Còn hàng ({stock} sản phẩm)</span>;
-    }
-    return <span className="text-red-600 font-medium">Hết hàng</span>;
-  };
+  const renderStockStatus = stock =>
+    stock > 0 ? (
+      <span className="font-semibold text-green-700">
+        Còn hàng ({stock})
+      </span>
+    ) : (
+      <span className="font-semibold text-red-500">Hết hàng</span>
+    );
 
-  const getRoastLevelDisplay = (level) => {
-    const levels = { 'Light': 'Nhẹ', 'Medium': 'Vừa', 'Dark': 'Đậm' };
-    return levels[level] || level;
-  };
+  if (loading)
+    return (
+      <div className="py-20 text-center text-gray-400">
+        Đang tải sản phẩm...
+      </div>
+    );
 
-  const getBeanTypeDisplay = (type) => {
-    const types = { 'Arabica': 'Arabica', 'Robusta': 'Robusta', 'Blend': 'Pha trộn' };
-    return types[type] || type;
-  };
+  if (!product)
+    return (
+      <div className="py-20 text-center">
+        Không tìm thấy sản phẩm
+      </div>
+    );
 
-  // --- RENDER KHI ĐANG TẢI HOẶC KHÔNG CÓ DỮ LIỆU ---
-  if (loading) return <div className="py-20 text-center text-gray-400">Đang tải sản phẩm...</div>;
-  if (!product) return <div className="py-20 text-center">Không tìm thấy sản phẩm</div>;
-
-  // Lấy dữ liệu an toàn để tránh lỗi undefined
   const flavorNotes = product?.flavorNotes || [];
   const brewingMethods = product?.brewingMethods || [];
   const categories = product?.category || [];
-  const currentStock = selectedVariant?.stock ?? 0;
   const variants = product?.variants || [];
+  const currentStock = selectedVariant?.stock ?? 0;
 
   return (
-    <div className="bg-gray-50 min-h-screen py-12 font-sans">
+    <div className="bg-gradient-to-b from-rose-50 to-white min-h-screen py-14">
       <div className="container mx-auto px-4 max-w-6xl">
-        {/* Layout chính: Grid 2 cột (trên desktop) */}
-        <div className="bg-white rounded-xl shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
-          
-          {/* --- CỘT TRÁI: HÌNH ẢNH --- */}
+
+        {/* MAIN CARD */}
+        <div className="bg-white/80 backdrop-blur-sm shadow-lg rounded-xl border border-rose-300/60 grid grid-cols-1 md:grid-cols-2 gap-10 p-8">
+
+          {/* LEFT - IMAGE */}
           <div>
-            {/* Ảnh chính to */}
-            <div className="w-full aspect-square overflow-hidden rounded-lg mb-4 flex items-center justify-center bg-gray-50 border border-gray-100">
+            <div className="aspect-square rounded-lg border border-rose-300 bg-gradient-to-br from-rose-50/30 to-red-50/30 flex items-center justify-center mb-6 shadow-md">
               <img
                 src={selectedImage?.imageUrl || 'https://via.placeholder.com/500'}
                 alt={product?.name}
-                className="w-full h-full object-contain transition-transform duration-500 hover:scale-105"
+                className="w-full h-full object-contain p-4"
               />
             </div>
-            
-            {/* Danh sách thumbnail (ảnh nhỏ) */}
-            {selectedVariant?.images && selectedVariant.images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                {selectedVariant.images.map((img, index) => (
+
+            {selectedVariant?.images?.length > 1 && (
+              <div className="flex gap-3">
+                {selectedVariant.images.map((img, i) => (
                   <button
-                    key={index}
+                    key={i}
                     onClick={() => setSelectedImage(img)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-all ${
-                      selectedImage?.imageUrl === img.imageUrl 
-                        ? 'border-red-500 ring-1 ring-red-200' 
-                        : 'border-gray-200 hover:border-gray-300'
+                    className={`w-20 h-20 rounded-md border transition-all ${
+                      selectedImage?.imageUrl === img.imageUrl
+                        ? 'border-rose-700 ring-2 ring-rose-400 shadow-md'
+                        : 'border-rose-300 hover:border-rose-500'
                     }`}
                   >
                     <img
                       src={img.imageUrl}
-                      alt={`Thumbnail ${index}`}
-                      className="w-full h-full object-cover"
+                      alt=""
+                      className="w-full h-full object-cover rounded-md"
                     />
                   </button>
                 ))}
@@ -175,163 +153,167 @@ const ProductDetailPage = () => {
             )}
           </div>
 
-          {/* --- CỘT PHẢI: THÔNG TIN SẢN PHẨM --- */}
-          <div>
-            {/* Tên sản phẩm */}
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{product?.name}</h1>
+          {/* RIGHT - INFO */}
+          <div className="flex flex-col">
 
-            {/* Danh mục (Category) */}
+            <h1 className="text-2xl font-bold text-amber-900 tracking-wide mb-3">
+              {product?.name}
+            </h1>
+
             {categories.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {categories.map((cat) => (
-                  <span key={cat.categoryId || Math.random()} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded">
+              <div className="flex gap-2 mb-4">
+                {categories.map(cat => (
+                  <span
+                    key={cat.categoryId}
+                    className="bg-gradient-to-r from-rose-100 to-red-100 border border-rose-400 text-rose-900 px-3 py-1 text-xs font-semibold uppercase rounded-full"
+                  >
                     {cat.name}
                   </span>
                 ))}
               </div>
             )}
-            
-            {/* Mã SKU và Tình trạng kho */}
-            <div className="text-sm text-gray-500 space-y-1 mb-6">
-              <p>SKU: <span className="font-medium text-gray-700">{selectedVariant?.sku || 'N/A'}</span></p>
+
+            <div className="text-sm mb-6 space-y-1 text-gray-700">
+              <p>
+                SKU:{' '}
+                <span className="font-semibold text-rose-800">
+                  {selectedVariant?.sku || 'N/A'}
+                </span>
+              </p>
               <p>Trạng thái: {renderStockStatus(currentStock)}</p>
             </div>
 
-            {/* Giá tiền */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-100 flex items-center">
-               <span className="text-3xl font-black text-red-600">
-                 {formatPrice(selectedVariant?.price || 0)}
-               </span>
+            {/* PRICE */}
+            <div className="bg-gradient-to-r from-rose-50 to-red-50 border-2 border-rose-400 rounded-lg p-5 mb-6 shadow-sm">
+              <span className="text-3xl font-bold text-rose-900 tracking-wide">
+                {formatPrice(selectedVariant?.price || 0)}
+              </span>
             </div>
 
-            {/* Mô tả ngắn */}
+            {/* DESCRIPTION */}
             {product?.description && (
-              <div className="mb-6 text-gray-600 text-sm leading-relaxed">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-2">Mô tả</h3>
-                <p>{product.description}</p>
+              <div className="mb-6 text-sm leading-relaxed text-gray-600">
+                {product.description}
               </div>
             )}
 
-            {/* Chọn Variant (Size/Loại) */}
+            {/* VARIANTS */}
             {variants.length > 1 && (
               <div className="mb-6">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Chọn phiên bản</h3>
                 <div className="flex flex-wrap gap-2">
-                  {variants.map((variant) => (
+                  {variants.map(variant => (
                     <button
                       key={variant.variantId}
                       onClick={() => {
                         setSelectedVariant(variant);
-                        // Tự động đổi ảnh chính theo variant nếu có
                         if (variant.images?.length > 0) {
-                          const mainImage = variant.images.find(img => img.isMain) || variant.images[0];
-                          setSelectedImage(mainImage);
+                          const main =
+                            variant.images.find(i => i.isMain) ||
+                            variant.images[0];
+                          setSelectedImage(main);
                         }
                       }}
-                      className={`px-4 py-2 rounded-md border-2 text-sm font-medium transition-all ${
+                      className={`px-4 py-2 rounded-lg border text-xs font-semibold uppercase tracking-wider transition-all ${
                         selectedVariant?.variantId === variant.variantId
-                          ? 'border-red-500 bg-red-50 text-red-700'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                          ? 'bg-gradient-to-r from-rose-700 to-red-700 text-white border-rose-800 shadow-md'
+                          : 'bg-white border-rose-300 text-rose-800 hover:border-rose-500 hover:bg-rose-50'
                       }`}
                     >
-                      {variant.weight}g - {getRoastLevelDisplay(variant.roastLevel)}
+                      {variant.weight}g
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Thông tin chi tiết Variant (Bảng grid nhỏ) */}
+            {/* TECH */}
             {selectedVariant && (
-              <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Chi tiết kỹ thuật</h3>
-                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-                  {selectedVariant.roastLevel && (
-                    <div><span className="text-gray-500">Độ rang:</span> <span className="font-medium">{getRoastLevelDisplay(selectedVariant.roastLevel)}</span></div>
-                  )}
-                  {selectedVariant.beanType && (
-                    <div><span className="text-gray-500">Loại hạt:</span> <span className="font-medium">{getBeanTypeDisplay(selectedVariant.beanType)}</span></div>
-                  )}
-                  {selectedVariant.origin && (
-                    <div><span className="text-gray-500">Xuất xứ:</span> <span className="font-medium">{selectedVariant.origin}</span></div>
-                  )}
-                  {selectedVariant.acidity != null && (
-                    <div><span className="text-gray-500">Độ chua:</span> <span className="font-medium">{selectedVariant.acidity}/10</span></div>
-                  )}
-                </div>
+              <div className="bg-gradient-to-br from-rose-50/50 to-red-50/50 border border-rose-300 rounded-lg p-5 mb-6 text-sm grid grid-cols-2 gap-y-3 text-gray-700">
+                {selectedVariant.origin && (
+                  <div>Xuất xứ: <b className="text-rose-900">{selectedVariant.origin}</b></div>
+                )}
+                {selectedVariant.beanType && (
+                  <div>Loại hạt: <b className="text-rose-900">{selectedVariant.beanType}</b></div>
+                )}
+                {selectedVariant.roastLevel && (
+                  <div>Độ rang: <b className="text-rose-900">{selectedVariant.roastLevel}</b></div>
+                )}
+                {selectedVariant.acidity != null && (
+                  <div>Độ chua: <b className="text-rose-900">{selectedVariant.acidity}/10</b></div>
+                )}
               </div>
             )}
 
-            {/* Hương vị (Flavor Notes) */}
+            {/* FLAVOR NOTES */}
             {flavorNotes.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Hương vị</h3>
+                <h3 className="text-sm font-semibold text-rose-900 mb-3 uppercase tracking-wide">
+                  🌿 Hương Vị 
+                </h3>
                 <div className="flex flex-wrap gap-2">
-                  {flavorNotes.map((note, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-100">
-                      {/* Xử lý an toàn: nếu note là object thì lấy name, nếu là string thì hiển thị luôn */}
-                      {typeof note === 'object' ? note.name : note}
+                  {flavorNotes.map((n, i) => (
+                    <span
+                      key={i}
+                      className="bg-white border border-rose-400 text-rose-800 px-3 py-1.5 text-xs font-semibold uppercase rounded-full shadow-sm"
+                    >
+                      {typeof n === 'object' ? n.name : n}
                     </span>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Phương pháp pha (Brewing Methods) */}
+            {/* BREWING METHODS */}
             {brewingMethods.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Gợi ý pha chế</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {brewingMethods.map((method, idx) => (
-                    <li key={idx} className="flex items-start">
-                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-2"></span>
-                      <div>
-                        {typeof method === 'object' ? (
-                            <>
-                                <div className="font-medium text-gray-700">{method.name}</div>
-                                {method.description && <div className="text-xs text-gray-500 mt-1">{method.description}</div>}
-                            </>
-                        ) : (
-                            <span>{method}</span>
-                        )}
-                      </div>
-                    </li>
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-rose-900 mb-3 uppercase tracking-wide">
+                  ☕ Phương Pháp Pha Chế
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {brewingMethods.map((method, i) => (
+                    <span
+                      key={i}
+                      className="bg-gradient-to-r from-red-100 to-rose-100 border border-red-400 text-red-800 px-3 py-1.5 text-xs font-semibold uppercase rounded-full shadow-sm"
+                    >
+                      {typeof method === 'object' ? method.name : method}
+                    </span>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
 
-            {/* Nút thao tác (Add to cart / Wishlist) */}
-            <div className="mt-auto pt-6 border-t border-gray-100 flex gap-4">
-              <button 
-                type="button"
+            {/* ACTION */}
+            <div className="mt-auto pt-6 border-t border-rose-300 flex gap-4">
+              <button
                 onClick={handleAddToWishlist}
-                title="Yêu thích"
-                className="flex items-center justify-center w-14 h-14 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50 transition-all active:scale-95"
+                className="w-14 h-14 rounded-lg border-2 border-rose-500 bg-white text-red-600 text-xl hover:bg-rose-50 hover:border-rose-600 transition-all shadow-sm"
               >
-                <span className="text-2xl">♥</span>
+                ♥
               </button>
-              
+
               <button
                 onClick={handleAddToCart}
                 disabled={currentStock <= 0}
-                className={`flex-1 font-bold py-4 px-8 rounded-lg transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2 ${
-                  currentStock > 0 
-                  ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200 active:scale-95' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                className={`flex-1 py-4 rounded-lg text-sm font-semibold uppercase tracking-wider transition-all shadow-md ${
+                  currentStock > 0
+                    ? 'bg-gradient-to-r from-rose-700 to-red-700 text-white hover:from-rose-800 hover:to-red-800'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {currentStock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                {currentStock > 0 ? 'Thêm vào giỏ' : 'Hết hàng'}
               </button>
             </div>
 
-          </div> {/* Kết thúc cột phải */}
+          </div>
         </div>
 
-        {/* Reviews section */}
-        <div className="container mx-auto px-4 max-w-6xl">
-          <Reviews variantId={selectedVariant?.variantId || selectedVariant?.id} />
+        {/* REVIEWS */}
+        <div className="mt-2">
+          <Reviews
+            variantId={selectedVariant?.variantId || selectedVariant?.id}
+          />
         </div>
+
       </div>
     </div>
   );
