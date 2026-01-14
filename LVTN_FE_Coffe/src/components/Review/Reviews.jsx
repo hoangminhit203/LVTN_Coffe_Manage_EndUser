@@ -9,16 +9,20 @@ const Star = ({ fillPercent = 0, size = 24 }) => {
   const percent = Math.max(0, Math.min(100, fillPercent));
 
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className="inline-block" xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox="0 0 24 24" className="inline-block transition-transform hover:scale-110 duration-200" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id={id}>
-          <stop offset={`${percent}%`} stopColor="#F59E0B" />
-          <stop offset={`${percent}%`} stopColor="#E5E7EB" />
+          <stop offset={`${percent}%`} stopColor="#FBBF24" />
+          <stop offset={`${percent}%`} stopColor="#D1D5DB" />
         </linearGradient>
+        <filter id="shadow">
+          <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.2"/>
+        </filter>
       </defs>
       <path 
         d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.786 1.402 8.172L12 18.896l-6.336 3.852 1.402-8.172L1.132 9.21l8.2-1.192L12 .587z" 
-        fill={`url(#${id})`} 
+        fill={`url(#${id})`}
+        filter="url(#shadow)"
       />
     </svg>
   );
@@ -148,103 +152,138 @@ const Reviews = ({ variantId }) => {
   }, [reviews]);
 
   return (
-    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mt-12 max-w-4xl mx-auto font-sans">
+    <div className="bg-gradient-to-br from-white via-orange-50/20 to-amber-50/30 rounded-2xl p-5 md:p-6 border border-orange-100 shadow-lg mt-8 max-w-4xl mx-auto font-sans backdrop-blur-sm">
       {/* Tooltip số sao */}
       {tooltipPos.show && (
         <div 
-          className="fixed z-50 bg-gray-800 text-white px-2 py-1 rounded-lg text-xs font-bold pointer-events-none transform -translate-x-1/2 shadow-xl"
+          className="fixed z-50 bg-gradient-to-r from-amber-600 to-orange-600 text-white px-2 py-1 rounded-md text-xs font-bold pointer-events-none transform -translate-x-1/2 shadow-xl border border-amber-400/50"
           style={{ left: tooltipPos.x, top: tooltipPos.y }}
         >
-          {hoverRating} sao
+          ⭐ {hoverRating}
         </div>
       )}
 
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Đánh giá & Nhận xét</h2>
+      <h2 className="text-xl md:text-2xl font-bold mb-5 text-transparent bg-clip-text bg-gradient-to-r from-gray-800 via-orange-600 to-amber-600 flex items-center gap-2">
+        <span className="text-xl">📝</span> Đánh giá & Nhận xét
+      </h2>
       
-      <div className="flex flex-col md:flex-row gap-8 mb-10 items-center bg-orange-50/30 p-8 rounded-3xl border border-orange-100/50">
-        <div className="text-center md:border-r md:pr-10 border-orange-200/50">
-          <div className="text-6xl font-black text-yellow-500 leading-tight">{avgRating.toFixed(1)}</div>
-          <div className="mt-2">{renderStars(avgRating, 28)}</div>
-          <div className="text-gray-500 text-sm mt-2 font-medium">{reviews.length} nhận xét</div>
+      <div className="flex flex-col md:flex-row gap-5 mb-6 items-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-5 rounded-2xl border border-amber-200/60 shadow-md hover:shadow-lg transition-all duration-300">
+        <div className="text-center md:border-r md:pr-6 border-orange-300/50 md:min-w-[140px]">
+          <div className="text-4xl md:text-5xl font-black bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-600 bg-clip-text text-transparent leading-tight">{avgRating.toFixed(1)}</div>
+          <div className="mt-2 flex justify-center">{renderStars(avgRating, 22)}</div>
+          <div className="text-gray-600 text-xs mt-2 font-semibold flex items-center justify-center gap-1">
+            <span className="text-orange-500">📊</span> {reviews.length} nhận xét
+          </div>
         </div>
 
         {hasPurchased && (
           <div className="flex-1 w-full">
-            <label className="block text-sm font-bold text-gray-700 mb-3">Bạn chấm sản phẩm này bao nhiêu sao?</label>
-            <div className="flex items-center gap-6">
+            <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
+              <span className="text-base">⭐</span> Bạn chấm sản phẩm này bao nhiêu sao?
+            </label>
+            <div className="flex items-center gap-4 bg-white/60 p-3 rounded-xl border border-amber-200/50 backdrop-blur-sm">
               <div 
                 ref={starContainerRef}
-                className="relative cursor-pointer py-2 inline-block transition-transform active:scale-95"
+                className="relative cursor-pointer py-1 inline-block transition-all hover:scale-105 active:scale-95 duration-200"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={() => { setHoverRating(0); setTooltipPos(prev => ({ ...prev, show: false })); }}
                 onClick={() => setRating(hoverRating)}
               >
-                {renderStars(hoverRating || rating, 44)}
+                {renderStars(hoverRating || rating, 32)}
               </div>
-              <div className="text-3xl font-black text-gray-300">
-                <span className="text-yellow-500">{hoverRating || rating}</span>/5
+              <div className="text-2xl font-black">
+                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">{hoverRating || rating}</span>
+                <span className="text-gray-300">/5</span>
               </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-2 italic font-medium">● Rê chuột để chọn sao lẻ ● Click để chốt điểm</p>
+            <p className="text-[10px] text-amber-700 mt-2 italic font-medium flex items-center gap-1 bg-amber-50/50 px-2 py-1 rounded-md border border-amber-200/30">
+              <span>💡</span> Rê chuột để chọn sao lẻ • Click để chốt điểm
+            </p>
           </div>
         )}
       </div>
 
       {hasPurchased ? (
-        <form onSubmit={handleSubmit} className="mb-12">
+        <form onSubmit={handleSubmit} className="mb-6 bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-orange-100 shadow-md">
+          <div className="mb-1.5 flex items-center gap-1.5 text-gray-700 font-semibold text-sm">
+            <span>✍️</span>
+            <span>Viết đánh giá của bạn</span>
+          </div>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
-            className="w-full p-5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none mb-4 min-h-[130px] transition-all bg-gray-50/30"
+            className="w-full p-3 border border-orange-200/50 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none mb-3 min-h-[100px] transition-all bg-white/80 text-sm text-gray-800 placeholder:text-gray-400 hover:border-orange-300"
           />
           <div className="flex justify-end">
             <button
               type="submit"
               disabled={submitting}
-              className="bg-gray-900 text-white px-10 py-3.5 rounded-2xl font-bold hover:bg-blue-600 transition-all disabled:opacity-50 shadow-lg shadow-gray-200 active:translate-y-0.5"
+              className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 active:scale-95 duration-200 flex items-center gap-2 group"
             >
-              {submitting ? 'Đang gửi...' : 'Gửi đánh giá ngay'}
+              {submitting ? (
+                <>
+                  <span className="animate-spin text-sm">⏳</span>
+                  <span>Đang gửi...</span>
+                </>
+              ) : (
+                <>
+                  <span className="group-hover:rotate-12 transition-transform duration-200 text-sm">🚀</span>
+                  <span>Gửi đánh giá</span>
+                </>
+              )}
             </button>
           </div>
         </form>
       ) : (
         !checkingPurchase && (
-            <div className="mb-10 p-5 bg-blue-50/50 rounded-2xl border border-blue-100 text-sm text-blue-600 font-medium">
-                Bạn cần mua sản phẩm này để có thể để lại đánh giá.
+            <div className="mb-6 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/60 text-xs text-blue-700 font-medium shadow-sm flex items-center gap-2 hover:shadow-md transition-shadow">
+                <span className="text-lg">ℹ️</span>
+                <div className="text-blue-600">Bạn cần mua và nhận sản phẩm này trước để có thể để lại đánh giá.</div>
             </div>
         )
       )}
 
       {/* Danh sách đánh giá (Mục bạn đang bị mất data) */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-10 text-gray-400 font-medium animate-pulse">Đang nạp dữ liệu...</div>
+          <div className="text-center py-10 text-gray-500 font-semibold flex flex-col items-center gap-2 animate-pulse">
+            <div className="text-3xl animate-bounce">⏳</div>
+            <div className="text-sm">Đang tải đánh giá...</div>
+          </div>
         ) : reviews.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 border-2 border-dashed rounded-3xl bg-gray-50/50">
-            Hãy là người đầu tiên đánh giá sản phẩm này!
+          <div className="text-center py-10 text-gray-500 border-2 border-dashed border-orange-200 rounded-2xl bg-gradient-to-br from-orange-50/30 to-amber-50/30 hover:border-orange-300 transition-all">
+            <div className="text-4xl mb-3">📝</div>
+            <div className="font-bold text-base mb-1 text-gray-700">Chưa có đánh giá nào</div>
+            <div className="text-sm text-gray-500">Hãy là người đầu tiên đánh giá sản phẩm này!</div>
           </div>
         ) : (
           reviews.map((r) => (
-            <div key={r.id} className="p-6 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-900 text-white rounded-2xl flex items-center justify-center font-bold shadow-sm">
+            <div key={r.id} className="p-4 rounded-2xl bg-gradient-to-br from-white via-white to-orange-50/20 border border-orange-100/60 shadow-sm hover:shadow-lg hover:border-orange-200 transition-all duration-300 group hover:-translate-y-0.5">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-400 via-amber-500 to-yellow-500 text-white rounded-xl flex items-center justify-center font-bold text-base group-hover:scale-105 transition-transform duration-300">
                     {(r.userName || 'K').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div className="font-bold text-gray-900 text-base">{r.userName || r.guestKey?.slice(0,6) || 'Khách hàng'}</div>
-                    <div className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                    <div className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                      {r.userName || r.guestKey?.slice(0,6) || 'Khách hàng'}
+                      <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">✓</span>
+                    </div>
+                    <div className="text-[10px] text-gray-500 font-medium flex items-center gap-1 mt-0.5">
+                      <span>🕐</span>
                       {new Date(r.createdAt || r.addedAt).toLocaleString('vi-VN')}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  {renderStars(r.rating || 0, 18)}
-                  <span className="text-[11px] font-black text-yellow-600 mt-1 block">{(r.rating || 0).toFixed(1)}/5.0</span>
+                <div className="text-right bg-amber-50/50 px-2 py-1.5 rounded-lg border border-amber-200/50">
+                  {renderStars(r.rating || 0, 16)}
+                  <div className="text-[11px] font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mt-1">{(r.rating || 0).toFixed(1)}/5</div>
                 </div>
               </div>
-              <p className="text-gray-600 text-[15px] leading-relaxed pl-1">{r.comment}</p>
+              <div className="pl-0.5 bg-white/40 backdrop-blur-sm p-3 rounded-lg border border-orange-100/40">
+                <p className="text-gray-700 text-sm leading-relaxed">{r.comment}</p>
+              </div>
             </div>
           ))
         )}

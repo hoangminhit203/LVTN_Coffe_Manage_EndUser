@@ -20,7 +20,17 @@ export const orderApi = {
   getHistory: () => api.get("/Order/history"),
 
   // Tra cứu theo guestKey (dành cho khách vãng lai)
-  getByGuestKey: (guestKey) => api.get(`/Order/history?guestKey=${encodeURIComponent(guestKey)}`),
+  getByGuestKey: (guestKey) =>
+    api.get(`/Order/history?guestKey=${encodeURIComponent(guestKey)}`),
+
+  // Gửi yêu cầu hoàn trả/hủy đơn hàng
+  requestReturn: (orderId, formData) => {
+    return api.post(`/Order/${orderId}/return-request`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+  },
 }
 
 export default orderApi

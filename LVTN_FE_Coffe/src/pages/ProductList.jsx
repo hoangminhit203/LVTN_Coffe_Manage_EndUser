@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
 import { getCategories, getProductsByCategory } from '../components/Api/catelogry';
 import { isAuthenticated } from '../utils/auth';
+import { useToast } from '../components/Toast';
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -10,20 +11,21 @@ const ProductList = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const toast = useToast();
 
   // Yêu thích (Wishlist) thường gắn liền với Profile nên vẫn giữ yêu cầu đăng nhập
   const handleAddToWishlist = async (productId) => {
     if (!isAuthenticated()) {
-      alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+      toast.warning('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
       navigate('/login');
       return;
     }
 
     try {
       await wishlistApi.add(productId);
-      alert('Đã thêm vào danh sách yêu thích thành công! ♥');
+      toast.success('Đã thêm vào danh sách yêu thích thành công! ♥');
     } catch (err) {
-      alert(err.message || 'Không thể thêm vào yêu thích.');
+      toast.error(err.message || 'Không thể thêm vào yêu thích.');
     }
   };
 
@@ -33,7 +35,7 @@ const ProductList = () => {
     const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
     
     if (!variantId) {
-      alert("Sản phẩm hiện tại không có phiên bản để mua.");
+      toast.error("Sản phẩm hiện tại không có phiên bản để mua.");
       return;
     }
 
@@ -42,13 +44,13 @@ const ProductList = () => {
       // Do file products.js đã có logic tự chèn X-Guest-Key nên không cần check auth ở đây.
       await cartApi.addItem(variantId, 1);
       
-      alert('Đã thêm sản phẩm vào giỏ hàng!');
+      toast.success('Đã thêm sản phẩm vào giỏ hàng!');
       
       // Tùy chọn: Chuyển hướng người dùng đến trang giỏ hàng để họ thấy sản phẩm vừa thêm
       navigate('/cart'); 
     } catch (err) {
       console.error('Lỗi khi thêm vào giỏ:', err);
-      alert('Có lỗi xảy ra: ' + (err.message || 'Lỗi hệ thống'));
+      toast.error('Có lỗi xảy ra: ' + (err.message || 'Lỗi hệ thống'));
     }
   };
 
