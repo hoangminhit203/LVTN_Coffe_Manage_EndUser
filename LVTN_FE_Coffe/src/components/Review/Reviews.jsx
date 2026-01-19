@@ -3,26 +3,23 @@ import { reviewApi } from '../Api/review';
 import { orderApi } from '../Api/order';
 import { useToast } from '../Toast/ToastContext';
 
-// --- Component Ngôi sao hỗ trợ đổ màu lẻ (4.2, 4.5,...) ---
-const Star = ({ fillPercent = 0, size = 24 }) => {
+// --- Component Ngôi sao: Chuyển sang tông Vàng Đồng/Hổ Phách ---
+const Star = ({ fillPercent = 0, size = 20 }) => {
   const id = useMemo(() => `starGrad_${Math.random().toString(36).substr(2, 9)}`, []);
   const percent = Math.max(0, Math.min(100, fillPercent));
 
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className="inline-block transition-transform hover:scale-110 duration-200" xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox="0 0 24 24" className="inline-block" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id={id}>
-          <stop offset={`${percent}%`} stopColor="#FBBF24" />
-          <stop offset={`${percent}%`} stopColor="#D1D5DB" />
+          {/* Màu vàng đồng đậm chất cà phê */}
+          <stop offset={`${percent}%`} stopColor="#B45309" /> 
+          <stop offset={`${percent}%`} stopColor="#E7E5E4" />
         </linearGradient>
-        <filter id="shadow">
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.2"/>
-        </filter>
       </defs>
       <path 
         d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.786 1.402 8.172L12 18.896l-6.336 3.852 1.402-8.172L1.132 9.21l8.2-1.192L12 .587z" 
         fill={`url(#${id})`}
-        filter="url(#shadow)"
       />
     </svg>
   );
@@ -33,7 +30,7 @@ const Reviews = ({ variantId }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  // State cho Đánh giá sao
+  // State
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, show: false });
@@ -54,29 +51,21 @@ const Reviews = ({ variantId }) => {
     }
   }, [variantId]);
 
-  // --- Logic lấy dữ liệu (Giữ nguyên logic cũ của bạn để không mất data) ---
+  // --- Logic cũ giữ nguyên ---
   const fetchReviews = async () => {
     try {
       setLoading(true);
       const res = await reviewApi.getByVariant(variantId);
       const data = res?.data || res;
-
       let list = [];
-      if (data?.value?.records) {
-        list = data.value.records;
-      } else if (data?.records) {
-        list = data.records;
-      } else if (Array.isArray(data?.data)) {
-        list = data.data;
-      } else if (Array.isArray(data)) {
-        list = data;
-      } else if (data?.data?.records) {
-        list = data.data.records;
-      }
-
+      if (data?.value?.records) list = data.value.records;
+      else if (data?.records) list = data.records;
+      else if (Array.isArray(data?.data)) list = data.data;
+      else if (Array.isArray(data)) list = data;
+      else if (data?.data?.records) list = data.data.records;
       setReviews(Array.isArray(list) ? list : []);
     } catch (err) {
-      console.error('Lỗi tải đánh giá:', err);
+      console.error(err);
       toast?.error?.('Không thể tải đánh giá');
     } finally {
       setLoading(false);
@@ -90,7 +79,6 @@ const Reviews = ({ variantId }) => {
       const res = await orderApi.getHistory();
       const data = res?.data || res || [];
       const orders = Array.isArray(data) ? data : [];
-      
       const found = orders.some((o) => {
         const status = String(o.status || '').toLowerCase();
         if (status !== 'delivered') return false;
@@ -105,16 +93,14 @@ const Reviews = ({ variantId }) => {
     }
   };
 
-  // --- Logic tương tác sao lẻ ---
   const handleMouseMove = (e) => {
     const rect = starContainerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     let val = (x / rect.width) * 5;
-    val = Math.ceil(val * 10) / 10; // Làm tròn tới 0.1
+    val = Math.ceil(val * 10) / 10;
     val = Math.max(0.1, Math.min(5, val));
-    
     setHoverRating(val);
-    setTooltipPos({ x: e.clientX, y: e.clientY - 35, show: true });
+    setTooltipPos({ x: e.clientX, y: e.clientY - 40, show: true });
   };
 
   const handleSubmit = async (e) => {
@@ -136,7 +122,7 @@ const Reviews = ({ variantId }) => {
 
   const renderStars = (value, size = 18) => {
     return (
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((i) => {
           let fill = 0;
           if (value >= i) fill = 100;
@@ -152,137 +138,124 @@ const Reviews = ({ variantId }) => {
   }, [reviews]);
 
   return (
-    <div className="bg-gradient-to-br from-white via-orange-50/20 to-amber-50/30 rounded-2xl p-5 md:p-6 border border-orange-100 shadow-lg mt-8 max-w-4xl mx-auto font-sans backdrop-blur-sm">
-      {/* Tooltip số sao */}
+    // Container: Nền trắng sạch, chữ màu tối, không gradient
+    <div className="max-w-5xl mx-auto font-sans text-stone-800 mt-10">
+      
+      {/* Tooltip đơn giản */}
       {tooltipPos.show && (
         <div 
-          className="fixed z-50 bg-gradient-to-r from-amber-600 to-orange-600 text-white px-2 py-1 rounded-md text-xs font-bold pointer-events-none transform -translate-x-1/2 shadow-xl border border-amber-400/50"
+          className="fixed z-50 bg-stone-800 text-white px-3 py-1 text-xs font-medium rounded shadow-xl transform -translate-x-1/2 pointer-events-none"
           style={{ left: tooltipPos.x, top: tooltipPos.y }}
         >
-          ⭐ {hoverRating}
+          {hoverRating} / 5
         </div>
       )}
 
-      <h2 className="text-xl md:text-2xl font-bold mb-5 text-transparent bg-clip-text bg-gradient-to-r from-gray-800 via-orange-600 to-amber-600 flex items-center gap-2">
-        <span className="text-xl">📝</span> Đánh giá & Nhận xét
-      </h2>
+      {/* Header: Chữ in hoa, font serif nếu có thể, border dưới mảnh */}
+      <div className="border-b border-stone-200 pb-4 mb-8 flex items-end justify-between">
+        <h2 className="text-2xl font-serif font-bold uppercase tracking-wide text-stone-900">
+          Đánh giá từ khách hàng
+        </h2>
+        <span className="text-sm text-stone-500 font-medium">
+          ({reviews.length} đánh giá)
+        </span>
+      </div>
       
-      <div className="flex flex-col md:flex-row gap-5 mb-6 items-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-5 rounded-2xl border border-amber-200/60 shadow-md hover:shadow-lg transition-all duration-300">
-        <div className="text-center md:border-r md:pr-6 border-orange-300/50 md:min-w-[140px]">
-          <div className="text-4xl md:text-5xl font-black bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-600 bg-clip-text text-transparent leading-tight">{avgRating.toFixed(1)}</div>
-          <div className="mt-2 flex justify-center">{renderStars(avgRating, 22)}</div>
-          <div className="text-gray-600 text-xs mt-2 font-semibold flex items-center justify-center gap-1">
-            <span className="text-orange-500">📊</span> {reviews.length} nhận xét
-          </div>
+      {/* Dashboard Tổng quan */}
+      <div className="flex flex-col md:flex-row gap-8 mb-10">
+        {/* Cột điểm số bên trái */}
+        <div className="flex flex-col items-center justify-center p-6 bg-stone-50 rounded-sm border border-stone-100 min-w-[200px]">
+          <div className="text-5xl font-serif font-bold text-stone-900 mb-2">{avgRating.toFixed(1)}</div>
+          <div className="mb-2">{renderStars(avgRating, 20)}</div>
+          <div className="text-xs text-stone-500 uppercase tracking-wider">Điểm trung bình</div>
         </div>
 
-        {hasPurchased && (
-          <div className="flex-1 w-full">
-            <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
-              <span className="text-base">⭐</span> Bạn chấm sản phẩm này bao nhiêu sao?
-            </label>
-            <div className="flex items-center gap-4 bg-white/60 p-3 rounded-xl border border-amber-200/50 backdrop-blur-sm">
-              <div 
-                ref={starContainerRef}
-                className="relative cursor-pointer py-1 inline-block transition-all hover:scale-105 active:scale-95 duration-200"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={() => { setHoverRating(0); setTooltipPos(prev => ({ ...prev, show: false })); }}
-                onClick={() => setRating(hoverRating)}
-              >
-                {renderStars(hoverRating || rating, 32)}
+        {/* Cột nhập liệu bên phải */}
+        <div className="flex-1">
+          {hasPurchased ? (
+             <div className="bg-white">
+                <div className="mb-4">
+                  <label className="block text-sm font-bold text-stone-700 uppercase tracking-wide mb-2">
+                    Chọn mức độ hài lòng
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div 
+                      ref={starContainerRef}
+                      className="cursor-pointer py-2 inline-flex"
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={() => { setHoverRating(0); setTooltipPos(prev => ({ ...prev, show: false })); }}
+                      onClick={() => setRating(hoverRating)}
+                    >
+                      {renderStars(hoverRating || rating, 28)}
+                    </div>
+                    <span className="text-xl font-serif font-bold text-stone-800">{hoverRating || rating}</span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                    className="w-full p-4 border border-stone-300 rounded-sm focus:ring-1 focus:ring-stone-500 focus:border-stone-500 outline-none mb-4 min-h-[120px] text-sm text-stone-800 placeholder:text-stone-400 bg-white transition-colors"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="bg-stone-900 hover:bg-stone-700 text-white px-8 py-3 rounded-sm text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50"
+                    >
+                      {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+                    </button>
+                  </div>
+                </form>
+             </div>
+          ) : (
+            !checkingPurchase && (
+              <div className="h-full flex flex-col justify-center items-center text-stone-500 bg-stone-50 border border-dashed border-stone-200 p-6 rounded-sm text-center">
+                 <span className="text-2xl mb-2 opacity-50">☕</span>
+                 <p className="text-sm">Bạn cần mua sản phẩm này để viết đánh giá.</p>
               </div>
-              <div className="text-2xl font-black">
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">{hoverRating || rating}</span>
-                <span className="text-gray-300">/5</span>
-              </div>
-            </div>
-            <p className="text-[10px] text-amber-700 mt-2 italic font-medium flex items-center gap-1 bg-amber-50/50 px-2 py-1 rounded-md border border-amber-200/30">
-              <span>💡</span> Rê chuột để chọn sao lẻ • Click để chốt điểm
-            </p>
-          </div>
-        )}
+            )
+          )}
+        </div>
       </div>
 
-      {hasPurchased ? (
-        <form onSubmit={handleSubmit} className="mb-6 bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-orange-100 shadow-md">
-          <div className="mb-1.5 flex items-center gap-1.5 text-gray-700 font-semibold text-sm">
-            <span>✍️</span>
-            <span>Viết đánh giá của bạn</span>
-          </div>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
-            className="w-full p-3 border border-orange-200/50 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none mb-3 min-h-[100px] transition-all bg-white/80 text-sm text-gray-800 placeholder:text-gray-400 hover:border-orange-300"
-          />
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 active:scale-95 duration-200 flex items-center gap-2 group"
-            >
-              {submitting ? (
-                <>
-                  <span className="animate-spin text-sm">⏳</span>
-                  <span>Đang gửi...</span>
-                </>
-              ) : (
-                <>
-                  <span className="group-hover:rotate-12 transition-transform duration-200 text-sm">🚀</span>
-                  <span>Gửi đánh giá</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      ) : (
-        !checkingPurchase && (
-            <div className="mb-6 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/60 text-xs text-blue-700 font-medium shadow-sm flex items-center gap-2 hover:shadow-md transition-shadow">
-                <span className="text-lg">ℹ️</span>
-                <div className="text-blue-600">Bạn cần mua và nhận sản phẩm này trước để có thể để lại đánh giá.</div>
-            </div>
-        )
-      )}
-
-      {/* Danh sách đánh giá (Mục bạn đang bị mất data) */}
-      <div className="space-y-4">
+      {/* Danh sách đánh giá: Clean & Minimal */}
+      <div className="space-y-6">
         {loading ? (
-          <div className="text-center py-10 text-gray-500 font-semibold flex flex-col items-center gap-2 animate-pulse">
-            <div className="text-3xl animate-bounce">⏳</div>
-            <div className="text-sm">Đang tải đánh giá...</div>
-          </div>
+          <div className="text-center py-12 text-stone-400 text-sm">Đang tải dữ liệu...</div>
         ) : reviews.length === 0 ? (
-          <div className="text-center py-10 text-gray-500 border-2 border-dashed border-orange-200 rounded-2xl bg-gradient-to-br from-orange-50/30 to-amber-50/30 hover:border-orange-300 transition-all">
-            <div className="text-4xl mb-3">📝</div>
-            <div className="font-bold text-base mb-1 text-gray-700">Chưa có đánh giá nào</div>
-            <div className="text-sm text-gray-500">Hãy là người đầu tiên đánh giá sản phẩm này!</div>
+          <div className="text-center py-12 border-t border-stone-100">
+            <p className="text-stone-500 italic">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>
           </div>
         ) : (
           reviews.map((r) => (
-            <div key={r.id} className="p-4 rounded-2xl bg-gradient-to-br from-white via-white to-orange-50/20 border border-orange-100/60 shadow-sm hover:shadow-lg hover:border-orange-200 transition-all duration-300 group hover:-translate-y-0.5">
-              <div className="flex justify-between items-start mb-3">
+            <div key={r.id} className="pb-6 border-b border-stone-100 last:border-0 animate-fade-in">
+              <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-400 via-amber-500 to-yellow-500 text-white rounded-xl flex items-center justify-center font-bold text-base group-hover:scale-105 transition-transform duration-300">
+                  {/* Avatar đơn giản: Vuông hoặc tròn nhẹ, màu đậm */}
+                  <div className="w-10 h-10 bg-stone-800 text-white rounded-sm flex items-center justify-center font-serif font-bold text-lg">
                     {(r.userName || 'K').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
-                      {r.userName || r.guestKey?.slice(0,6) || 'Khách hàng'}
-                      <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">✓</span>
+                    <div className="font-bold text-stone-900 text-sm flex items-center gap-2">
+                      {r.userName || 'Khách hàng'}
+                      <span className="text-[10px] border border-stone-300 text-stone-500 px-1 rounded-sm">Đã mua</span>
                     </div>
-                    <div className="text-[10px] text-gray-500 font-medium flex items-center gap-1 mt-0.5">
-                      <span>🕐</span>
+                    <div className="text-xs text-stone-400 mt-0.5">
                       {new Date(r.createdAt || r.addedAt).toLocaleString('vi-VN')}
                     </div>
                   </div>
                 </div>
-                <div className="text-right bg-amber-50/50 px-2 py-1.5 rounded-lg border border-amber-200/50">
-                  {renderStars(r.rating || 0, 16)}
-                  <div className="text-[11px] font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mt-1">{(r.rating || 0).toFixed(1)}/5</div>
+                {/* Rating nhỏ gọn */}
+                <div className="flex items-center gap-2">
+                   {renderStars(r.rating || 0, 14)}
                 </div>
               </div>
-              <div className="pl-0.5 bg-white/40 backdrop-blur-sm p-3 rounded-lg border border-orange-100/40">
-                <p className="text-gray-700 text-sm leading-relaxed">{r.comment}</p>
+              
+              <div className="pl-13 ml-13 md:ml-0 mt-3 text-stone-700 text-sm leading-relaxed">
+                {r.comment}
               </div>
             </div>
           ))
