@@ -109,6 +109,11 @@ export const navbarLinks = [
                 label: "All Orders",
                 icon: NotebookText,
                 path: "/orders",
+             },
+               {
+                label: "Return Requests",
+                icon: NotebookText,
+                path: "/return-requests",
             },
         ],
     },

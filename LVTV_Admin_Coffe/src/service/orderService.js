@@ -69,3 +69,29 @@ export const updateOrderStatus = async (orderId, status) => {
         throw error;
     }
 };
+
+// Lấy danh sách yêu cầu hoàn trả
+export const getOrderReturns = async () => {
+    try {
+        const response = await axiosClient.get(`/Order/admin/returns`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching order returns:", error);
+        throw error;
+    }
+};
+
+// Cập nhật trạng thái yêu cầu hoàn trả
+export const updateReturnStatus = async (returnId, action, note = "") => {
+    try {
+        // action phải là "approve" hoặc "reject"
+        const response = await axiosClient.post(`/Order/admin/returns/${returnId}/process`, {
+            action,
+            note,
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`Error processing return ${returnId}:`, error);
+        throw error;
+    }
+};

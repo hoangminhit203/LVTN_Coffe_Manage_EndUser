@@ -25,11 +25,8 @@ export const orderApi = {
 
   // Gửi yêu cầu hoàn trả/hủy đơn hàng
   requestReturn: (orderId, formData) => {
-    return api.post(`/Order/${orderId}/return-request`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    })
+    // api.post sẽ tự động detect FormData và xử lý đúng
+    return api.post(`/Order/${orderId}/return-request`, formData)
   },
 }
 
