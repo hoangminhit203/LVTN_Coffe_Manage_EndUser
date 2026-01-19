@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { orderApi } from '../components/Api/order';
 import { isAuthenticated } from '../utils/auth';
 import { useToast } from '../components/Toast';
-import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload, FaCheckCircle, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa';
+import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload, FaCheckCircle, FaTimesCircle, FaExclamationCircle, FaStar } from 'react-icons/fa';
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
@@ -45,7 +45,10 @@ const OrderHistoryPage = () => {
           if (Array.isArray(data)) {
             data.forEach((o) => {
               const items = o.items || o.orderItems || [];
-              items.forEach((it) => console.log(`Order ${o.id} item ${it.id} image:`, it.imageUrl || it.productImage || it.image));
+              items.forEach((it) => {
+                console.log(`Order ${o.id} item:`, it);
+                console.log(`  - id: ${it.id}, productId: ${it.productId}, productVariantId: ${it.productVariantId}`);
+              });
             });
           }
           setOrders(Array.isArray(data) ? data : []);
@@ -454,15 +457,47 @@ const OrderHistoryPage = () => {
                           </button>
                         )}
 
-                        {/* Nút yêu cầu hoàn trả - Chỉ hiển thị khi đơn hàng đã giao (Delivered) VÀ chưa có yêu cầu hoàn trả */}
-                        {order.status?.toLowerCase() === 'delivered' && !order.returnRequestStatus && (
-                          <button
-                            onClick={(e) => openReturnDialog(order.id, e)}
-                            className="group flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
-                          >
-                            <FaUndo className="text-[10px] group-hover:-rotate-45 transition-transform" /> 
-                            <span>Hoàn trả</span>
-                          </button>
+                        {/* Nút yêu cầu hoàn trả và Đánh giá - Chỉ hiển thị khi đơn hàng đã giao (Delivered) */}
+                        {order.status?.toLowerCase() === 'delivered' && (
+                          <div className="flex gap-2">
+                            {!order.returnRequestStatus && (
+                              <button
+                                onClick={(e) => openReturnDialog(order.id, e)}
+                                className="group flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                              >
+                                <FaUndo className="text-[10px] group-hover:-rotate-45 transition-transform" /> 
+                                <span>Hoàn trả</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const items = order.items || order.orderItems || [];
+                                const firstProduct = items[0];
+                                
+                                console.log('🔍 Order:', order);
+                                console.log('🔍 Items:', items);
+                                console.log('🔍 First Product:', firstProduct);
+                                
+                                // Backend có thể trả ProductId (viết hoa) hoặc productId (viết thường)
+                                const productId = firstProduct?.ProductId || firstProduct?.productId;
+                                console.log('🔍 Product ID found:', productId);
+                                
+                                if (productId) {
+                                  navigate(`/product/${productId}`, { 
+                                    state: { scrollToReview: true } 
+                                  });
+                                } else {
+                                  console.error('❌ Không tìm thấy productId. FirstProduct:', firstProduct);
+                                  toast.warning('Không tìm thấy thông tin sản phẩm để đánh giá');
+                                }
+                              }}
+                              className="group flex items-center gap-1.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                            >
+                              <FaStar className="text-[10px] group-hover:scale-110 transition-transform" /> 
+                              <span>Đánh giá</span>
+                            </button>
+                          </div>
                         )}
                       </div>
                       
