@@ -133,12 +133,19 @@ const api = {
 
     return apiRequest(finalEndpoint, { method: "GET" })
   },
-  post: (endpoint, body) =>
-    apiRequest(endpoint, { method: "POST", body: JSON.stringify(body) }),
-  put: (endpoint, body) =>
-    apiRequest(endpoint, { method: "PUT", body: JSON.stringify(body) }),
-  patch: (endpoint, body) =>
-    apiRequest(endpoint, { method: "PATCH", body: JSON.stringify(body) }),
+  post: (endpoint, body) => {
+    // Nếu là FormData, GỬI TRỰC TIẾP (không JSON.stringify, không set Content-Type)
+    const finalBody = body instanceof FormData ? body : JSON.stringify(body)
+    return apiRequest(endpoint, { method: "POST", body: finalBody })
+  },
+  put: (endpoint, body) => {
+    const finalBody = body instanceof FormData ? body : JSON.stringify(body)
+    return apiRequest(endpoint, { method: "PUT", body: finalBody })
+  },
+  patch: (endpoint, body) => {
+    const finalBody = body instanceof FormData ? body : JSON.stringify(body)
+    return apiRequest(endpoint, { method: "PATCH", body: finalBody })
+  },
   delete: (endpoint) => apiRequest(endpoint, { method: "DELETE" }),
 }
 

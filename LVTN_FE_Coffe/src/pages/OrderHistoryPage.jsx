@@ -21,6 +21,11 @@ const OrderHistoryPage = () => {
   const [returnLoading, setReturnLoading] = useState(false);
   const [returnError, setReturnError] = useState('');
   
+  // States cho tính năng hủy đơn hàng
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -156,6 +161,55 @@ const OrderHistoryPage = () => {
     }
   };
 
+  // --- 5. Cancel Order Handlers ---
+  const openCancelDialog = (orderId, e) => {
+    e.stopPropagation();
+    setCancelOrderId(orderId);
+    setCancelDialogOpen(true);
+  };
+
+  const closeCancelDialog = () => {
+    setCancelDialogOpen(false);
+    setCancelOrderId(null);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!cancelOrderId) return;
+    
+    try {
+      setCancelLoading(true);
+      const response = await orderApi.cancel(cancelOrderId);
+      
+      if (response.isSuccess === true || response.IsSuccess === true) {
+        toast.success('✅ Đơn hàng đã được hủy thành công!', 5000);
+        closeCancelDialog();
+        
+        // Refresh orders list
+        if (isLoggedIn) {
+          const historyResponse = await orderApi.getHistory();
+          const data = historyResponse.data || historyResponse;
+          setOrders(Array.isArray(data) ? data : []);
+        } else {
+          // Nếu đang tra cứu đơn hàng
+          if (searchOrderId) {
+            const searchResponse = await orderApi.getById(searchOrderId);
+            const data = searchResponse.data || searchResponse;
+            setOrders(data ? [data] : []);
+          }
+        }
+      } else {
+        const errorMsg = response.message || response.Message || 'Không thể hủy đơn hàng';
+        toast.error('❌ ' + errorMsg);
+      }
+    } catch (err) {
+      console.error('Lỗi hủy đơn hàng:', err);
+      const errorMsg = err.response?.data?.message || err.response?.data?.Message || 'Có lỗi xảy ra khi hủy đơn hàng';
+      toast.error('❌ ' + errorMsg);
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   const handleSubmitReturn = async (e) => {
     e.preventDefault();
     
@@ -203,7 +257,7 @@ const OrderHistoryPage = () => {
         if (isLoggedIn) {
           const historyResponse = await orderApi.getHistory();
           const data = historyResponse.data || historyResponse;
-          setOrders(Array.isArray(data) ? data : []);
+          setOrders(Array.isArray(data) ? data :  []);
         }
       } else {
         console.warn('⚠️ Response không có isSuccess=true:', response);
@@ -388,16 +442,29 @@ const OrderHistoryPage = () => {
                         <p className="text-xl font-black text-red-600">{formatPrice(total)}</p>
                       </div>
 
-                      {/* Nút yêu cầu hoàn trả - Chỉ hiển thị khi đơn hàng đã giao (Delivered) VÀ chưa có yêu cầu hoàn trả */}
-                      {order.status?.toLowerCase() === 'delivered' && !order.returnRequestStatus && (
-                         <button
-                          onClick={(e) => openReturnDialog(order.id, e)}
-                          className="mt-2 group flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
-                        >
-                          <FaUndo className="text-[10px] group-hover:-rotate-45 transition-transform" /> 
-                          <span>Hoàn trả</span>
-                        </button>
-                      )}
+                      <div className="flex flex-col gap-2">
+                        {/* Nút hủy đơn hàng - Chỉ hiển thị khi đơn hàng đang chờ xử lý (Pending) */}
+                        {order.status?.toLowerCase() === 'pending' && (
+                          <button
+                            onClick={(e) => openCancelDialog(order.id, e)}
+                            className="group flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                          >
+                            <FaTimes className="text-[10px] group-hover:rotate-90 transition-transform" /> 
+                            <span>Hủy đơn</span>
+                          </button>
+                        )}
+
+                        {/* Nút yêu cầu hoàn trả - Chỉ hiển thị khi đơn hàng đã giao (Delivered) VÀ chưa có yêu cầu hoàn trả */}
+                        {order.status?.toLowerCase() === 'delivered' && !order.returnRequestStatus && (
+                          <button
+                            onClick={(e) => openReturnDialog(order.id, e)}
+                            className="group flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                          >
+                            <FaUndo className="text-[10px] group-hover:-rotate-45 transition-transform" /> 
+                            <span>Hoàn trả</span>
+                          </button>
+                        )}
+                      </div>
                       
                       {/* Hiển thị trạng thái khi đã yêu cầu hoàn trả */}
                       {order.status?.toLowerCase() === 'return_requested' && (
@@ -621,6 +688,53 @@ const OrderHistoryPage = () => {
           </div>
         )}
       </div>
+
+      {/* Cancel Order Confirmation Dialog */}
+      {cancelDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-fadeIn">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="bg-red-100 p-3 rounded-full">
+                  <FaTimes className="text-red-600 text-xl" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-800">Xác nhận hủy đơn hàng</h2>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-700 mb-2">
+                Bạn có chắc chắn muốn hủy đơn hàng này?
+              </p>
+              <div className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 font-medium mb-4">
+                Mã đơn hàng: <span className="font-bold">#{cancelOrderId?.split('-')[0].toUpperCase()}</span>
+              </div>
+              <p className="text-sm text-red-600">
+                ⚠️ Hành động này không thể hoàn tác!
+              </p>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button
+                type="button"
+                onClick={closeCancelDialog}
+                disabled={cancelLoading}
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Không
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                disabled={cancelLoading}
+                className="flex-1 bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancelLoading ? 'Đang hủy...' : 'Hủy đơn hàng'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Return Request Dialog - Đã được chuyển ra ngoài vòng lặp orders.map */}
       {returnDialogOpen && (

@@ -12,7 +12,7 @@ export const orderApi = {
   create: (orderData) => api.post("/Order", orderData),
 
   // Hủy đơn hàng
-  cancel: (id) => api.patch(`/Order/${id}/cancel`, {}),
+  cancel: (id) => api.put(`/Order/${id}/cancel`, {}),
 
   // Cập nhật trạng thái đơn hàng
   updateStatus: (id, status) => api.patch(`/Order/${id}/status`, { status }),
