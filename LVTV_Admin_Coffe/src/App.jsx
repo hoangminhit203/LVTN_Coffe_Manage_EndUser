@@ -16,6 +16,7 @@ import Order from "@/components/order/Order";
 import PromotionPage from "@/routes/promotion/page";
 import BannerPage from "@/routes/banner/page";
 import UserPage from "@/routes/user/page";
+import OrderReturnPage from "@/routes/order/OrderReturnPage";
 function App() {
     const router = createBrowserRouter([
         {
@@ -66,6 +67,10 @@ function App() {
                     path: "users",
                     element: <UserPage />,
                 },
+                  {
+                    path: '/return-requests',
+                     element: <OrderReturnPage />
+                },
                 {
                     path: "reports",
                     element: <h1 className="title">Reports</h1>,
@@ -78,10 +83,7 @@ function App() {
                     path: "new-customer",
                     element: <h1 className="title">New Customer</h1>,
                 },
-                {
-                    path: "verified-customers",
-                    element: <h1 className="title">Verified Customers</h1>,
-                },
+              
                 {
                     path: "products/edit/:id",
                     element: <EditProduct />,

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { orderApi } from '../components/Api/order';
 import { isAuthenticated } from '../utils/auth';
-import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload } from 'react-icons/fa';
+import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload, FaCheckCircle, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa';
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
@@ -61,6 +61,8 @@ const OrderHistoryPage = () => {
     if (s === 'completed' || s === 'success') return 'bg-green-100 text-green-700';
     if (s === 'delivered') return 'bg-blue-100 text-blue-700';
     if (s === 'cancelled') return 'bg-red-100 text-red-700';
+    if (s === 'return_requested') return 'bg-orange-100 text-orange-700';
+    if (s === 'returned') return 'bg-purple-100 text-purple-700';
     return 'bg-gray-100 text-gray-700';
   };
 
@@ -155,8 +157,15 @@ const OrderHistoryPage = () => {
   const handleSubmitReturn = async (e) => {
     e.preventDefault();
     
-    if (!returnReason.trim()) {
+    const trimmedReason = returnReason.trim();
+    
+    if (!trimmedReason) {
       setReturnError('Vui lòng nhập lý do hoàn trả');
+      return;
+    }
+
+    if (returnImages.length > 5) {
+      setReturnError('Chỉ được upload tối đa 5 ảnh');
       return;
     }
 
@@ -165,26 +174,46 @@ const OrderHistoryPage = () => {
       setReturnError('');
 
       const formData = new FormData();
-      formData.append('Reason', returnReason);
+      formData.append('Reason', trimmedReason);
       
-      returnImages.forEach((image) => {
+      returnImages.forEach((image, index) => {
         formData.append('Images', image);
+        console.log(`Image ${index + 1}:`, image.name, image.size, 'bytes');
       });
 
-      await orderApi.requestReturn(selectedOrderId, formData);
+
+
       
-      alert('Yêu cầu hoàn trả đã được gửi thành công!');
-      closeReturnDialog();
-      
-      // Refresh orders list if logged in
-      if (isLoggedIn) {
-        const response = await orderApi.getHistory();
-        const data = response.data || response;
-        setOrders(Array.isArray(data) ? data : []);
+      // Response trực tiếp là { isSuccess, message, data }
+      if (response.isSuccess === true || response.IsSuccess === true) {
+        alert('Yêu cầu hoàn trả đã được gửi thành công!');
+        closeReturnDialog();
+        
+        // Refresh orders list if logged in
+        if (isLoggedIn) {
+          const historyResponse = await orderApi.getHistory();
+          const data = historyResponse.data || historyResponse;
+          setOrders(Array.isArray(data) ? data : []);
+        }
+      } else {
+        console.warn('⚠️ Response không có isSuccess=true:', response);
+        setReturnError(response.message || response.Message || 'Không thể gửi yêu cầu hoàn trả');
       }
     } catch (err) {
       console.error("Lỗi gửi yêu cầu hoàn trả:", err);
-      setReturnError('Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại.');
+      console.error("Error response:", err.response);
+      
+      // Xử lý lỗi validation từ backend
+      if (err.response?.data?.errors) {
+        const validationErrors = err.response.data.errors;
+        const errorMessages = Object.entries(validationErrors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        setReturnError(errorMessages || 'Dữ liệu không hợp lệ');
+      } else {
+        const errorMsg = err.response?.data?.message || err.response?.data?.Message || err.response?.data?.title || 'Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại.';
+        setReturnError(errorMsg);
+      }
     } finally {
       setReturnLoading(false);
     }
@@ -272,9 +301,7 @@ const OrderHistoryPage = () => {
               const itemCount = order.itemCount ?? items.length;
               const total = order.finalAmount ?? order.totalAmount ?? order.totalPrice;
               
-              // Debug: kiểm tra trạng thái đơn hàng
-              console.log(`Order ${order.id} - Status: "${order.status}" - Lowercase: "${order.status?.toLowerCase()}" - Can return: ${order.status?.toLowerCase() === 'delivered'}`);
-
+           
               return (
                 <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                   {/* Header: click to expand */}
@@ -289,11 +316,27 @@ const OrderHistoryPage = () => {
                       </div>
 
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-bold text-gray-800">Mã đơn: {order.id}</span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${getStatusColor(order.status)}`}>
                             {order.status}
                           </span>
+                          {/* Badge trạng thái hoàn trả */}
+                          {order.status?.toLowerCase() === 'returned' && order.returnRequestStatus && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${
+                              order.returnRequestStatus === 'approved' 
+                                ? 'bg-green-100 text-green-700' 
+                                : order.returnRequestStatus === 'rejected'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {order.returnRequestStatus === 'approved' 
+                                ? '✓ Đã duyệt' 
+                                : order.returnRequestStatus === 'rejected'
+                                ? '✗ Từ chối'
+                                : '⏳ Chờ duyệt'}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-400 flex items-center gap-1">
                           <FaClock /> {new Date(order.createdAt).toLocaleDateString('vi-VN')}
@@ -331,15 +374,23 @@ const OrderHistoryPage = () => {
                         <p className="text-xl font-black text-red-600">{formatPrice(total)}</p>
                       </div>
 
-                      {/* Nút yêu cầu hoàn trả - Chỉ hiển thị khi đơn hàng đã giao (Delivered) */}
-                      {order.status?.toLowerCase() === 'delivered' && (
+                      {/* Nút yêu cầu hoàn trả - Chỉ hiển thị khi đơn hàng đã giao (Delivered) VÀ chưa có yêu cầu hoàn trả */}
+                      {order.status?.toLowerCase() === 'delivered' && !order.returnRequestStatus && (
                          <button
                           onClick={(e) => openReturnDialog(order.id, e)}
-                          className="mt-2 group flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                          className="mt-2 group flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
                         >
                           <FaUndo className="text-[10px] group-hover:-rotate-45 transition-transform" /> 
                           <span>Hoàn trả</span>
                         </button>
+                      )}
+                      
+                      {/* Hiển thị trạng thái khi đã yêu cầu hoàn trả */}
+                      {order.status?.toLowerCase() === 'return_requested' && (
+                        <div className="mt-2 flex items-center gap-1.5 bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-bold">
+                          <FaClock className="text-[10px]" /> 
+                          <span>Chờ xử lý</span>
+                        </div>
                       )}
                     </div>
                   </button>
@@ -350,6 +401,62 @@ const OrderHistoryPage = () => {
                       {/* Thông tin đơn hàng */}
                       <div className="p-6 border-b border-gray-200">
                         <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Thông tin đơn hàng</h3>
+                        
+                        {/* Thông báo trạng thái hoàn trả từ Admin */}
+                        {order.status?.toLowerCase() === 'returned' && order.returnRequestStatus && (
+                          <div className={`mb-4 rounded-xl p-4 border-2 ${
+                            order.returnRequestStatus === 'approved' 
+                              ? 'bg-green-50 border-green-200' 
+                              : order.returnRequestStatus === 'rejected'
+                              ? 'bg-red-50 border-red-200'
+                              : 'bg-yellow-50 border-yellow-200'
+                          }`}>
+                            <div className="flex items-start gap-3">
+                              {order.returnRequestStatus === 'approved' ? (
+                                <FaCheckCircle className="text-green-600 text-2xl flex-shrink-0 mt-0.5" />
+                              ) : order.returnRequestStatus === 'rejected' ? (
+                                <FaTimesCircle className="text-red-600 text-2xl flex-shrink-0 mt-0.5" />
+                              ) : (
+                                <FaExclamationCircle className="text-yellow-600 text-2xl flex-shrink-0 mt-0.5" />
+                              )}
+                              <div className="flex-1">
+                                <h4 className={`font-bold text-base mb-2 ${
+                                  order.returnRequestStatus === 'approved' 
+                                    ? 'text-green-800' 
+                                    : order.returnRequestStatus === 'rejected'
+                                    ? 'text-red-800'
+                                    : 'text-yellow-800'
+                                }`}>
+                                  {order.returnRequestStatus === 'approved' 
+                                    ? '✅ Yêu cầu hoàn trả đã được chấp nhận' 
+                                    : order.returnRequestStatus === 'rejected'
+                                    ? '❌ Yêu cầu hoàn trả đã bị từ chối'
+                                    : '⏳ Yêu cầu hoàn trả đang được xử lý'}
+                                </h4>
+                                {order.returnAdminNote && (
+                                  <div className={`text-sm ${
+                                    order.returnRequestStatus === 'approved' 
+                                      ? 'text-green-700' 
+                                      : order.returnRequestStatus === 'rejected'
+                                      ? 'text-red-700'
+                                      : 'text-yellow-700'
+                                  }`}>
+                                    <p className="font-semibold mb-1">Ghi chú từ Admin:</p>
+                                    <p className="bg-white bg-opacity-50 p-3 rounded-lg border border-current border-opacity-20">
+                                      {order.returnAdminNote}
+                                    </p>
+                                  </div>
+                                )}
+                                {order.returnRequestStatus === 'approved' && (
+                                  <div className="mt-3 text-sm text-green-700">
+                                    <p>💰 Chúng tôi sẽ hoàn tiền cho bạn trong thời gian sớm nhất.</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="bg-white rounded-xl p-4 shadow-sm">
                           <div className="grid md:grid-cols-3 gap-4">
                             <div>

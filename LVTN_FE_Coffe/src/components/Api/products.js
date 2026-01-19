@@ -13,7 +13,14 @@ const getGuestKey = () => {
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`
 
-  const defaultHeaders = { "Content-Type": "application/json" }
+  // Không set Content-Type mặc định nếu body là FormData
+  const isFormData = options.body instanceof FormData
+  const defaultHeaders = {}
+
+  // Chỉ set Content-Type: application/json nếu KHÔNG phải FormData
+  if (!isFormData) {
+    defaultHeaders["Content-Type"] = "application/json"
+  }
 
   // 1. Kiểm tra Token (Hội viên)
   const token = localStorage.getItem("token")
@@ -22,19 +29,37 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 
   // 2. Luôn gửi Guest Key nếu có (để backend tracking)
+  // Backend expect header "guestKey" (không phải "X-Guest-Key")
   const guestKey = localStorage.getItem("guestKey")
   if (guestKey) {
-    defaultHeaders["X-Guest-Key"] = guestKey
+    defaultHeaders["guestKey"] = guestKey
   }
+
+  // Merge headers
+  const mergedHeaders = {
+    ...defaultHeaders,
+    ...(options.headers || {}),
+  }
+
+  // Xóa các header có giá trị undefined (cho FormData)
+  Object.keys(mergedHeaders).forEach((key) => {
+    if (mergedHeaders[key] === undefined) {
+      delete mergedHeaders[key]
+    }
+  })
 
   const config = {
     ...options,
     credentials: "include", // Cho phép gửi cookies/credentials
-    headers: {
-      ...defaultHeaders,
-      ...(options.headers || {}),
-    },
+    headers: mergedHeaders,
   }
+
+  console.log("🔧 Final request config:", {
+    url,
+    method: config.method,
+    headers: mergedHeaders,
+    bodyType: config.body instanceof FormData ? "FormData" : typeof config.body,
+  })
 
   const response = await fetch(url, config)
   const contentType = response.headers.get("content-type") || ""
@@ -48,6 +73,12 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 
   if (!response.ok) {
+    console.error("❌ API Error Response:", {
+      url,
+      status: response.status,
+      data,
+    })
+
     // Xử lý error message từ backend (hỗ trợ cả JSON và plain text)
     let message = `HTTP error ${response.status}`
 
@@ -62,16 +93,36 @@ const apiRequest = async (endpoint, options = {}) => {
       message = JSON.stringify(data)
     }
 
-    throw new Error(message)
+    // Tạo error object có chứa response data để có thể parse ở nơi gọi
+    const error = new Error(message)
+    error.response = { data, status: response.status }
+    throw error
   }
 
+  console.log("✅ API Response Success:", { url, data })
   return data
 }
 
 const api = {
   get: (endpoint) => apiRequest(endpoint, { method: "GET" }),
-  post: (endpoint, body) =>
-    apiRequest(endpoint, { method: "POST", body: JSON.stringify(body) }),
+  post: (endpoint, body, options = {}) => {
+    // Nếu body là FormData, không stringify
+    if (body instanceof FormData) {
+      console.log("📤 Sending FormData to:", endpoint)
+      return apiRequest(endpoint, {
+        method: "POST",
+        body,
+        ...options,
+      })
+    }
+    // Nếu là object thông thường, stringify như cũ
+    console.log("📤 Sending JSON to:", endpoint)
+    return apiRequest(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body),
+      ...options,
+    })
+  },
   put: (endpoint, body) =>
     apiRequest(endpoint, { method: "PUT", body: JSON.stringify(body) }),
   patch: (endpoint, body) =>
@@ -86,20 +137,24 @@ export const productApi = {
 }
 export const wishlistApi = {
   add: async (variantId) => {
-    const response = await api.post("/Wishlist", { variantId: Number(variantId) })
+    const response = await api.post("/Wishlist", {
+      variantId: Number(variantId),
+    })
     // Check if response has isSuccess flag and it's false
     if (response && response.isSuccess === false) {
-      throw new Error(response.message || 'Không thể thêm vào yêu thích')
+      throw new Error(response.message || "Không thể thêm vào yêu thích")
     }
     return response
   },
 
   getAll: () => api.get("/Wishlist"),
   remove: (id) => api.delete(`/Wishlist/${id}`),
- addToCard: async (wishlistId) => {
+  addToCard: async (wishlistId) => {
     // Truyền tham số dưới dạng query string như curl bạn đã test
-    const response = await api.post(`/Wishlist/add-multiple?wishlistId=${wishlistId}`);
-    return response;
+    const response = await api.post(
+      `/Wishlist/add-multiple?wishlistId=${wishlistId}`,
+    )
+    return response
   },
 }
 
@@ -154,7 +209,10 @@ export const newsApi = {
   getAll: () => api.get("/News"),
 }
 export const promotionApi = {
-  apply: (code, orderTotal) => api.get(`/Promotion/apply?code=${encodeURIComponent(code)}&orderTotal=${orderTotal}`),
+  apply: (code, orderTotal) =>
+    api.get(
+      `/Promotion/apply?code=${encodeURIComponent(code)}&orderTotal=${orderTotal}`,
+    ),
 }
 export const paymentApi = {
   createVnPayUrl: async (orderId) => {
