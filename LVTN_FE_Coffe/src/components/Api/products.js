@@ -104,25 +104,30 @@ const apiRequest = async (endpoint, options = {}) => {
 }
 
 const api = {
-  get: (endpoint) => apiRequest(endpoint, { method: "GET" }),
-  post: (endpoint, body, options = {}) => {
-    // Nếu body là FormData, không stringify
-    if (body instanceof FormData) {
-      console.log("📤 Sending FormData to:", endpoint)
-      return apiRequest(endpoint, {
-        method: "POST",
-        body,
-        ...options,
-      })
+  get: (endpoint, params = null) => {
+    let finalEndpoint = endpoint;
+
+    // Kiểm tra nếu có params và params là một Object thực sự
+    if (params && typeof params === 'object') {
+      const searchParams = new URLSearchParams();
+      
+      Object.entries(params).forEach(([key, value]) => {
+        // Chỉ thêm vào URL các giá trị không rỗng
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, value);
+        }
+      });
+
+      const queryString = searchParams.toString();
+      if (queryString) {
+        finalEndpoint += (finalEndpoint.includes('?') ? '&' : '?') + queryString;
+      }
     }
-    // Nếu là object thông thường, stringify như cũ
-    console.log("📤 Sending JSON to:", endpoint)
-    return apiRequest(endpoint, {
-      method: "POST",
-      body: JSON.stringify(body),
-      ...options,
-    })
+
+    return apiRequest(finalEndpoint, { method: "GET" });
   },
+  post: (endpoint, body) =>
+    apiRequest(endpoint, { method: "POST", body: JSON.stringify(body) }),
   put: (endpoint, body) =>
     apiRequest(endpoint, { method: "PUT", body: JSON.stringify(body) }),
   patch: (endpoint, body) =>
@@ -131,9 +136,9 @@ const api = {
 }
 
 export const productApi = {
-  getAll: () => api.get("/Product"),
+  getAll: (queryParams) => api.get("/Product", queryParams),
   getById: (id) => api.get(`/Product/${id}`),
-  getByCategory: (categoryId) => api.get(`/Product/by-category/${categoryId}`),
+  getByCategory: (categoryId, params) => api.get(`/Product/by-category/${categoryId}`, { params }),
 }
 export const wishlistApi = {
   add: async (variantId) => {

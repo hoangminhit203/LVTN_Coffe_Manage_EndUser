@@ -63,9 +63,9 @@ export const deleteProduct = async (productId) => {
 // Tìm kiếm sản phẩm
 export const searchProducts = async (searchTerm, page = 1, pageSize = 10) => {
     try {
-        const response = await axiosClient.get(`/Product/search`, {
+        const response = await axiosClient.get(`/Product`, {
             params: {
-                q: searchTerm,
+                Name: searchTerm,
                 page,
                 pageSize,
             },
