@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
-import { getCategories, getProductsByCategory } from '../components/Api/catelogry';
+import { getCategories } from '../components/Api/catelogry';
 import { isAuthenticated } from '../utils/auth';
 import { useToast } from '../components/Toast';
 
@@ -10,137 +10,103 @@ const ProductList = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // State lưu giá trị trong ô nhập (chưa áp dụng)
+  const [filters, setFilters] = useState({
+    Name: '',
+    Origin: '',
+    MinPrice: '',
+    MaxPrice: ''
+  });
+
   const navigate = useNavigate();
   const toast = useToast();
 
-  // Yêu thích (Wishlist) thường gắn liền với Profile nên vẫn giữ yêu cầu đăng nhập
-  const handleAddToWishlist = async (product) => {
-  if (!isAuthenticated()) {
-    toast.warning('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
-    navigate('/login');
-    return;
-  }
-
-  const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
-  
-  if (!variantId) {
-    toast.error('Sản phẩm không có phiên bản để thêm vào yêu thích');
-    return;
-  }
-
-  try {
-    const response = await wishlistApi.add(variantId);
-    
-    // TRÍCH XUẤT TỪ LỚP 'VALUE' THEO JSON CỦA BẠN
-    const result = response?.value; 
-
-    if (result?.isSuccess) {
-      // Nếu thành công (isSuccess: true)
-      toast.success(result.message || 'Đã thêm vào yêu thích!');
-    } else {
-      // Nếu Backend báo lỗi (isSuccess: false)
-      // Lúc này result.message sẽ là "Sản phẩm đã có trong danh sách yêu thích"
-      toast.error(result?.message || 'Không thể thêm vào yêu thích.');
-    }
-  } catch (err) {
-    // Xử lý lỗi HTTP (401, 500...)
-    const errorMsg = err.response?.data?.value?.message || err.message || 'Lỗi hệ thống';
-    toast.error(errorMsg);
-  }
-};
-
-  // --- HÀM MUA NGAY ĐÃ SỬA ---
-  const handleBuyNow = async (product) => {
-    // Bước 1: Lấy ID của variant (ưu tiên variantId hoặc id tùy theo cấu trúc dữ liệu của bạn)
-    const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
-    
-    if (!variantId) {
-      toast.error("Sản phẩm hiện tại không có phiên bản để mua.");
-      return;
-    }
-
+  // --- HÀM FETCH CHÍNH ---
+  const fetchProducts = useCallback(async () => {
     try {
-      // Bước 2: Gọi API thêm vào giỏ hàng. 
-      // Do file products.js đã có logic tự chèn X-Guest-Key nên không cần check auth ở đây.
-      await cartApi.addItem(variantId, 1);
+      setLoading(true);
       
-      toast.success('Đã thêm sản phẩm vào giỏ hàng!');
-      
-      // Tùy chọn: Chuyển hướng người dùng đến trang giỏ hàng để họ thấy sản phẩm vừa thêm
-      //navigate('/cart'); 
-    } catch (err) {
-      console.error('Lỗi khi thêm vào giỏ:', err);
-      toast.error('Có lỗi xảy ra: ' + (err.message || 'Lỗi hệ thống'));
-    }
-  };
+      // Chuẩn bị params từ state filters và category hiện tại
+      const queryParams = {
+        ...filters,
+        ...(selectedCategory && { CategoryId: selectedCategory })
+      };
 
-  // Fetch categories sử dụng API function
+      console.log("Thực hiện gọi API với bộ lọc:", queryParams);
+      const res = await productApi.getAll(queryParams); 
+
+      const responseData = res.data || res;
+      const list = responseData?.records || responseData?.data?.records || responseData?.data || [];
+      setProducts(list);
+    } catch (err) {
+      console.error('Lỗi tải sản phẩm:', err);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, selectedCategory]);
+
+  // 1. Fetch danh mục một lần duy nhất khi mount
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchCats = async () => {
       try {
         const res = await getCategories({ pageSize: 100 });
-        const data = res?.data?.records || [];
-        setCategories(data);
+        setCategories(res?.data?.records || []);
       } catch (err) {
         console.error('Lỗi tải danh mục:', err);
       }
     };
-    fetchCategories();
+    fetchCats();
   }, []);
 
+  // 2. Tự động load lại khi ĐỔI CATEGORY
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        let res;
-        if (selectedCategory) {
-          // Lấy sản phẩm theo category với pagination
-          res = await getProductsByCategory(selectedCategory, { 
-            pageNumber: 1, 
-            pageSize: 100 
-          });
-        } else {
-          // Lấy tất cả sản phẩm
-          res = await productApi.getAll();
-        }
-        const responseData = res.data || res;
-        const list = responseData?.records || responseData?.data?.records || responseData?.data || [];
-        setProducts(list);
-      } catch (err) {
-        console.error('Lỗi tải sản phẩm:', err);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProducts();
-  }, [selectedCategory]);
+  }, [selectedCategory]); 
 
-  // Helper functions - xử lý cả 2 cấu trúc dữ liệu
-  const getName = (p) => p?.name || 'Sản phẩm';
-  const getPrice = (p) => {
-    // Ưu tiên lấy từ price trực tiếp (từ category API)
-    if (p?.price) return p.price;
-    // Fallback lấy từ variants (từ getAll API)
-    return p?.variants?.[0]?.price || 0;
+  // --- HANDLERS ---
+  const handleApplyFilter = () => {
+    fetchProducts(); // Chỉ gọi khi nhấn nút
   };
-  const getSku = (p) => {
-    // Ưu tiên lấy SKU trực tiếp (từ category API)
-    if (p?.sku) return p.sku;
-    // Fallback lấy từ variants (từ getAll API)
-    return p?.variants?.[0]?.sku || 'N/A';
+
+  const handleClearFilter = () => {
+    setFilters({ Name: '', Origin: '', MinPrice: '', MaxPrice: '' });
+    setSelectedCategory(null);
+    // Để state kịp cập nhật, ta gọi trực tiếp với object rỗng
+    setLoading(true);
+    productApi.getAll({}).then(res => {
+      const data = res.data || res;
+      setProducts(data?.records || data || []);
+      setLoading(false);
+    });
   };
-  const getImage = (p) => {
-    // Ưu tiên lấy imageUrl trực tiếp (từ category API)
-    if (p?.imageUrl) return p.imageUrl;
-    // Fallback lấy từ variants (từ getAll API)
-    const firstVariant = p?.variants?.[0];
-    if (firstVariant?.images?.length > 0) return firstVariant.images[0].imageUrl;
-    return 'https://via.placeholder.com/400';
+
+  const handleAddToWishlist = async (product) => {
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+      navigate('/login');
+      return;
+    }
+    const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
+    if (!variantId) return toast.error('Sản phẩm không có phiên bản');
+    try {
+      const response = await wishlistApi.add(variantId);
+      if (response?.value?.isSuccess) toast.success('Đã thêm vào yêu thích!');
+      else toast.error(response?.value?.message || 'Lỗi thêm yêu thích');
+    } catch (err) { toast.error('Lỗi hệ thống'); }
   };
-  const formatPrice = (price) => {
-    return price > 0 ? Number(price).toLocaleString('vi-VN') + ' đ' : 'Liên hệ';
+
+  const handleBuyNow = async (product) => {
+    const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
+    if (!variantId) return toast.error("Không có phiên bản để mua.");
+    try {
+      await cartApi.addItem(variantId, 1);
+      toast.success('Đã thêm sản phẩm vào giỏ hàng!');
+    } catch (err) { toast.error('Lỗi khi thêm vào giỏ'); }
   };
+
+  const formatPrice = (price) => price > 0 ? Number(price).toLocaleString('vi-VN') + ' đ' : 'Liên hệ';
 
   return (
     <div className="bg-white min-h-screen py-10 font-sans">
@@ -150,30 +116,95 @@ const ProductList = () => {
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-10">
-          <aside className="w-full lg:w-1/4">
-            <h2 className="text-lg font-bold mb-6 text-gray-800 border-b-2 border-red-800 inline-block pb-1 uppercase">
-              Loại sản phẩm
-            </h2>
-            <div className="flex flex-col">
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`text-left py-3 border-b border-gray-100 text-sm transition-colors cursor-pointer ${
-                  selectedCategory === null ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'
-                }`}
-              >
-                Tất cả
-              </button>
-              {categories.map((cat) => (
+          <aside className="w-full lg:w-1/4 space-y-10">
+            
+            {/* 1. LOẠI SẢN PHẨM (ĐƯA LÊN TRÊN) */}
+            <div>
+              <h2 className="text-lg font-bold mb-6 text-gray-800 border-b-2 border-red-800 inline-block pb-1 uppercase tracking-wider">
+                Loại sản phẩm
+              </h2>
+              <div className="flex flex-col">
                 <button
-                  key={cat.categoryId}
-                  onClick={() => setSelectedCategory(cat.categoryId)}
-                  className={`text-left py-3 border-b border-gray-100 text-sm transition-colors cursor-pointer ${
-                    selectedCategory === cat.categoryId ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'
-                  }`}
+                  onClick={() => setSelectedCategory(null)}
+                  className={`text-left py-3 border-b border-gray-100 text-sm transition-colors cursor-pointer ${selectedCategory === null ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'}`}
                 >
-                  {cat.name}
+                  Tất cả sản phẩm
                 </button>
-              ))}
+                {categories.map((cat) => (
+                  <button
+                    key={cat.categoryId}
+                    onClick={() => setSelectedCategory(cat.categoryId)}
+                    className={`text-left py-3 border-b border-gray-100 text-sm transition-colors cursor-pointer ${selectedCategory === cat.categoryId ? 'text-red-800 font-bold' : 'text-gray-500 hover:text-red-800'}`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. TÌM KIẾM & BỘ LỌC (ĐƯA XUỐNG DƯỚI) */}
+            <div className="bg-gray-50 p-5 border border-gray-100">
+              <h2 className="text-sm font-bold mb-4 text-gray-800 uppercase tracking-widest">
+                Bộ lọc tìm kiếm
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] text-gray-400 uppercase mb-1 block">Tên sản phẩm</label>
+                  <input 
+                    type="text" 
+                    placeholder="Tìm tên..."
+                    className="w-full border border-gray-200 p-2 text-sm bg-white focus:outline-red-800"
+                    value={filters.Name}
+                    onChange={(e) => setFilters({...filters, Name: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-[10px] text-gray-400 uppercase mb-1 block">Xuất xứ</label>
+                  <input 
+                    type="text" 
+                    placeholder="Nhập nơi sản xuất..."
+                    className="w-full border border-gray-200 p-2 text-sm bg-white focus:outline-red-800"
+                    value={filters.Origin}
+                    onChange={(e) => setFilters({...filters, Origin: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-400 uppercase mb-1 block">Khoảng giá (VNĐ)</label>
+                  <div className="flex gap-2 items-center">
+                    <input 
+                      type="number" 
+                      placeholder="Từ"
+                      className="w-full border border-gray-200 p-2 text-sm bg-white"
+                      value={filters.MinPrice}
+                      onChange={(e) => setFilters({...filters, MinPrice: e.target.value})}
+                    />
+                    <span className="text-gray-300">-</span>
+                    <input 
+                      type="number" 
+                      placeholder="Đến"
+                      className="w-full border border-gray-200 p-2 text-sm bg-white"
+                      value={filters.MaxPrice}
+                      onChange={(e) => setFilters({...filters, MaxPrice: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleApplyFilter}
+                  className="w-full bg-black text-white py-3 mt-2 text-xs font-bold uppercase hover:bg-red-800 transition-all shadow-lg active:scale-95"
+                >
+                  Áp dụng bộ lọc
+                </button>
+
+                <button 
+                  onClick={handleClearFilter}
+                  className="text-[10px] uppercase text-gray-400 hover:text-red-800 underline block text-center w-full mt-2"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
             </div>
           </aside>
 
@@ -186,61 +217,33 @@ const ProductList = () => {
             </h2>
 
             {loading ? (
-              <div className="text-center py-20 text-gray-400 font-medium">Đang tải...</div>
+              <div className="text-center py-20 text-gray-400 font-medium animate-pulse">Đang tải dữ liệu...</div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-20 text-gray-400 border border-dashed border-gray-200">
+                Không tìm thấy sản phẩm nào phù hợp.
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map((p) => (
-                  <div
-                    key={p.productId}
-                    className="group bg-white border border-gray-200 rounded-none overflow-hidden transition-all duration-300 hover:shadow-xl"
-                  >
-                    {/* IMAGE */}
-                    <Link
-                      to={`/product/${p.productId}`}
-                      className="block relative aspect-square bg-gray-50 overflow-hidden"
-                    >
-                      <img
-                        src={getImage(p)}
-                        alt={getName(p)}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  <div key={p.productId} className="group bg-white border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl">
+                    <Link to={`/product/${p.productId}`} className="block relative aspect-square bg-gray-50 overflow-hidden">
+                      <img 
+                        src={p?.imageUrl || p?.variants?.[0]?.images?.[0]?.imageUrl || 'https://via.placeholder.com/400'} 
+                        alt={p.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                       />
-
-                      {/* Wishlist */}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleAddToWishlist(p);
-                        }}
-                        className="absolute top-3 right-3 w-9 h-9 bg-white/90 border border-gray-300 flex items-center justify-center text-gray-700 hover:text-red-600 hover:border-red-600 transition"
-                        title="Yêu thích"
-                      >
-                        ♥
-                      </button>
                     </Link>
 
-                    {/* CONTENT */}
                     <div className="p-5 flex flex-col min-h-[190px]">
                       <Link to={`/product/${p.productId}`}>
-                        <h3 className="text-sm font-semibold text-gray-900 uppercase leading-snug line-clamp-2 mb-2">
-                          {getName(p)}
-                        </h3>
+                        <h3 className="text-sm font-semibold text-gray-900 uppercase leading-snug line-clamp-2 mb-2 group-hover:text-red-800 transition-colors">{p.name}</h3>
                       </Link>
-
-                      <p className="text-[11px] text-gray-400 mb-3 tracking-wide">
-                        SKU: {getSku(p)}
-                      </p>
-
+                      <p className="text-[11px] text-gray-400 mb-3 tracking-wide">SKU: {p.sku || p?.variants?.[0]?.sku || 'N/A'}</p>
                       <div className="mt-auto">
                         <p className="text-xl font-bold text-[#8B0000] mb-4">
-                          {formatPrice(getPrice(p))}
+                          {formatPrice(p.price || p?.variants?.[0]?.price)}
                         </p>
-
-                        <button
-                          onClick={() => handleBuyNow(p)}
-                          className="w-full h-11 bg-black text-white text-xs font-bold tracking-widest uppercase hover:bg-[#8B0000] transition-all"
-                        >
-                          Mua ngay
-                        </button>
+                        <button onClick={() => handleBuyNow(p)} className="w-full h-11 bg-black text-white text-xs font-bold tracking-widest uppercase hover:bg-[#8B0000] transition-all">Mua ngay</button>
                       </div>
                     </div>
                   </div>
