@@ -85,12 +85,22 @@ export const productApi = {
   getByCategory: (categoryId) => api.get(`/Product/by-category/${categoryId}`),
 }
 export const wishlistApi = {
-  add: (productId) => {
-    return api.post("/Wishlist", { productId: Number(productId) })
+  add: async (variantId) => {
+    const response = await api.post("/Wishlist", { variantId: Number(variantId) })
+    // Check if response has isSuccess flag and it's false
+    if (response && response.isSuccess === false) {
+      throw new Error(response.message || 'Không thể thêm vào yêu thích')
+    }
+    return response
   },
 
   getAll: () => api.get("/Wishlist"),
   remove: (id) => api.delete(`/Wishlist/${id}`),
+ addToCard: async (wishlistId) => {
+    // Truyền tham số dưới dạng query string như curl bạn đã test
+    const response = await api.post(`/Wishlist/add-multiple?wishlistId=${wishlistId}`);
+    return response;
+  },
 }
 
 export const cartApi = {

@@ -14,20 +14,40 @@ const ProductList = () => {
   const toast = useToast();
 
   // Yêu thích (Wishlist) thường gắn liền với Profile nên vẫn giữ yêu cầu đăng nhập
-  const handleAddToWishlist = async (productId) => {
-    if (!isAuthenticated()) {
-      toast.warning('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
-      navigate('/login');
-      return;
-    }
+  const handleAddToWishlist = async (product) => {
+  if (!isAuthenticated()) {
+    toast.warning('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+    navigate('/login');
+    return;
+  }
 
-    try {
-      await wishlistApi.add(productId);
-      toast.success('Đã thêm vào danh sách yêu thích thành công! ♥');
-    } catch (err) {
-      toast.error(err.message || 'Không thể thêm vào yêu thích.');
+  const variantId = product?.variants?.[0]?.variantId || product?.variants?.[0]?.id;
+  
+  if (!variantId) {
+    toast.error('Sản phẩm không có phiên bản để thêm vào yêu thích');
+    return;
+  }
+
+  try {
+    const response = await wishlistApi.add(variantId);
+    
+    // TRÍCH XUẤT TỪ LỚP 'VALUE' THEO JSON CỦA BẠN
+    const result = response?.value; 
+
+    if (result?.isSuccess) {
+      // Nếu thành công (isSuccess: true)
+      toast.success(result.message || 'Đã thêm vào yêu thích!');
+    } else {
+      // Nếu Backend báo lỗi (isSuccess: false)
+      // Lúc này result.message sẽ là "Sản phẩm đã có trong danh sách yêu thích"
+      toast.error(result?.message || 'Không thể thêm vào yêu thích.');
     }
-  };
+  } catch (err) {
+    // Xử lý lỗi HTTP (401, 500...)
+    const errorMsg = err.response?.data?.value?.message || err.message || 'Lỗi hệ thống';
+    toast.error(errorMsg);
+  }
+};
 
   // --- HÀM MUA NGAY ĐÃ SỬA ---
   const handleBuyNow = async (product) => {
@@ -47,7 +67,7 @@ const ProductList = () => {
       toast.success('Đã thêm sản phẩm vào giỏ hàng!');
       
       // Tùy chọn: Chuyển hướng người dùng đến trang giỏ hàng để họ thấy sản phẩm vừa thêm
-      navigate('/cart'); 
+      //navigate('/cart'); 
     } catch (err) {
       console.error('Lỗi khi thêm vào giỏ:', err);
       toast.error('Có lỗi xảy ra: ' + (err.message || 'Lỗi hệ thống'));
@@ -189,7 +209,7 @@ const ProductList = () => {
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          handleAddToWishlist(p.productId);
+                          handleAddToWishlist(p);
                         }}
                         className="absolute top-3 right-3 w-9 h-9 bg-white/90 border border-gray-300 flex items-center justify-center text-gray-700 hover:text-red-600 hover:border-red-600 transition"
                         title="Yêu thích"

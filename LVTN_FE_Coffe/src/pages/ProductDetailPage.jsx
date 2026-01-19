@@ -52,9 +52,21 @@ const ProductDetailPage = () => {
       return;
     }
 
+    // Lấy variantId từ variant đã chọn
+    const variantId = selectedVariant?.variantId || selectedVariant?.id;
+    
+    if (!variantId) {
+      toast.error('Sản phẩm không có phiên bản để thêm vào yêu thích');
+      return;
+    }
+
     try {
-      await wishlistApi.add(id);
-      toast.success('Đã thêm vào yêu thích ♥');
+      const result = await wishlistApi.add(variantId);
+      if (result?.isSuccess === false) {
+        toast.error(result.message || 'Không thể thêm vào yêu thích');
+      } else {
+        toast.success('Đã thêm vào yêu thích ♥');
+      }
     } catch (error) {
       toast.error(error.message || 'Đã tồn tại trong wishlist');
     }

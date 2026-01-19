@@ -23,12 +23,12 @@ const CartPage = () => {
       setLoading(true);
       setError(null);
       const data = await cartApi.getCart();
-      console.log('📦 Cart data từ backend:', data);
-      console.log('📦 Cart items:', data?.items);
+      console.log(' Cart data từ backend:', data);
+      console.log(' Cart items:', data?.items);
       // Log chi tiết từng item để xem có field stock không
       if (data?.items?.length > 0) {
-        console.log('📦 Chi tiết item đầu tiên:', data.items[0]);
-        console.log('📦 Tất cả keys của item:', Object.keys(data.items[0]));
+        console.log(' Chi tiết item đầu tiên:', data.items[0]);
+        console.log(' Tất cả keys của item:', Object.keys(data.items[0]));
       }
       setCart(data);
     } catch (err) {
@@ -141,7 +141,7 @@ const CartPage = () => {
       // Backend trả về { isAvailable: true/false, message: "...", items: [...] }
       if (!stockResult.isAvailable) {
         // Có sản phẩm không đủ stock
-        console.error('❌ Stock validation failed');
+        console.error(' Stock validation failed');
         
         // Tạo message chi tiết từ items
         let detailMessage = stockResult.message || 'Một số sản phẩm không đủ số lượng';
@@ -321,10 +321,7 @@ const CartPage = () => {
                     <span>Tạm tính</span>
                     <span className="font-bold text-gray-800">{formatPrice(cart.totalPrice)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-500">
-                    <span>Phí giao hàng</span>
-                    <span className="text-green-500 font-bold">Miễn phí</span>
-                  </div>
+                  
                   <div className="border-t border-dashed pt-4 flex justify-between items-center">
                     <span className="text-lg font-bold text-gray-800">Tổng cộng</span>
                     <span className="text-2xl font-black text-red-600">{formatPrice(cart.totalPrice)}</span>
