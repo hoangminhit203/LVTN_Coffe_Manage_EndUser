@@ -22,6 +22,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import PaymentCallback from './pages/PaymentCallback';
 import ProfilePage from './pages/ProfilePage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
+import Wishlist from './pages/Wishlist';
 
 const App = () => {
   useEffect(() => {
@@ -50,6 +51,7 @@ const App = () => {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
           <Route path="/order-history" element={<OrderHistoryPage />} />

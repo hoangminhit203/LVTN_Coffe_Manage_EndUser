@@ -9,9 +9,15 @@ import {
   FaBars,
   FaTimes,
   FaShoppingCart,
-  FaBox, // Thêm icon hộp để đại diện cho đơn hàng
+  FaBox,
+  FaHeart,
 } from "react-icons/fa";
-import { isAuthenticated, logout, getUserFromToken, isAdmin } from "../../utils/auth";
+import {
+  isAuthenticated,
+  logout,
+  getUserFromToken,
+  isAdmin,
+} from "../../utils/auth";
 import { cartApi } from "../Api/products";
 import { userApi } from "../Api/user";
 
@@ -48,8 +54,16 @@ const Navbar = () => {
   const getAvatarColor = (name) => {
     if (!name) return "#6B7280";
     const colors = [
-      "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
-      "#EC4899", "#14B8A6", "#F97316", "#06B6D4", "#6366F1"
+      "#EF4444",
+      "#F59E0B",
+      "#10B981",
+      "#3B82F6",
+      "#8B5CF6",
+      "#EC4899",
+      "#14B8A6",
+      "#F97316",
+      "#06B6D4",
+      "#6366F1",
     ];
     const charCode = name.charCodeAt(0) + name.charCodeAt(name.length - 1);
     return colors[charCode % colors.length];
@@ -61,7 +75,8 @@ const Navbar = () => {
     try {
       const response = await cartApi.getCart();
       const data = response.data || response;
-      const count = data.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+      const count =
+        data.items?.reduce((total, item) => total + item.quantity, 0) || 0;
       setCartCount(count);
     } catch (err) {
       console.error("Lỗi lấy số lượng giỏ hàng:", err);
@@ -74,7 +89,7 @@ const Navbar = () => {
     setIsAuth(isAuthenticated());
     setIsMobileMenuOpen(false);
     fetchCartCount();
-    
+
     if (isAuthenticated()) {
       fetchUserName();
       setHasAdminRole(isAdmin());
@@ -89,15 +104,16 @@ const Navbar = () => {
     try {
       const response = await userApi.me();
       const userData = response?.data?.data || response?.data || response;
-      const displayName = userData?.firstName && userData?.lastName 
-        ? `${userData.firstName} ${userData.lastName}` 
-        : userData?.userName || userData?.email?.split('@')[0] || "User";
+      const displayName =
+        userData?.firstName && userData?.lastName
+          ? `${userData.firstName} ${userData.lastName}`
+          : userData?.userName || userData?.email?.split("@")[0] || "User";
       setUserName(displayName);
     } catch (err) {
       console.error("Lỗi lấy thông tin user:", err);
       const tokenData = getUserFromToken();
       const emailFromToken = tokenData?.email || tokenData?.unique_name;
-      setUserName(emailFromToken?.split('@')[0] || "User");
+      setUserName(emailFromToken?.split("@")[0] || "User");
     }
   };
 
@@ -171,16 +187,29 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
+            {/* ICON WISHLIST (MỚI THÊM) */}
+            <Link
+              to="/wishlist"
+              className="relative w-10 h-10 flex items-center justify-center text-gray-700 hover:bg-red-50 rounded-full transition-all group"
+              title="Danh sách yêu thích"
+            >
+              <FaHeart className="text-xl group-hover:text-red-600 transition-colors" />
+              {/* Nếu bạn muốn hiển thị số lượng yêu thích, có thể thêm badge tương tự giỏ hàng ở đây */}
+            </Link>
 
             {/* USER DROPDOWN */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors overflow-hidden"
-                style={isAuth && userName ? {
-                  backgroundColor: getAvatarColor(userName),
-                  borderColor: getAvatarColor(userName)
-                } : {}}
+                style={
+                  isAuth && userName
+                    ? {
+                        backgroundColor: getAvatarColor(userName),
+                        borderColor: getAvatarColor(userName),
+                      }
+                    : {}
+                }
               >
                 {isAuth && userName ? (
                   <span className="text-white font-bold text-sm">
@@ -196,19 +225,28 @@ const Navbar = () => {
                   {!isAuth ? (
                     <>
                       {/* DÀNH CHO KHÁCH VÃNG LAI */}
-                      <Link to="/login" className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 text-sm text-gray-700 transition-colors">
-                        <FaSignInAlt className="text-blue-500" /> 
+                      <Link
+                        to="/login"
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 text-sm text-gray-700 transition-colors"
+                      >
+                        <FaSignInAlt className="text-blue-500" />
                         <span className="font-medium">Đăng nhập</span>
                       </Link>
-                      <Link to="/register" className="flex items-center gap-3 px-5 py-3 hover:bg-green-50 text-sm text-gray-700 transition-colors">
-                        <FaUserPlus className="text-green-500" /> 
+                      <Link
+                        to="/register"
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-green-50 text-sm text-gray-700 transition-colors"
+                      >
+                        <FaUserPlus className="text-green-500" />
                         <span className="font-medium">Đăng ký thành viên</span>
                       </Link>
-                      
+
                       <div className="border-t border-gray-50 my-2"></div>
-                      
-                      <Link to="/order-history" className="flex items-center gap-3 px-5 py-3 hover:bg-orange-50 text-sm text-orange-600 transition-colors font-bold">
-                        <FaBox className="text-orange-500" /> 
+
+                      <Link
+                        to="/order-history"
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-orange-50 text-sm text-orange-600 transition-colors font-bold"
+                      >
+                        <FaBox className="text-orange-500" />
                         Tra cứu đơn hàng
                       </Link>
                     </>
@@ -216,30 +254,41 @@ const Navbar = () => {
                     <>
                       {/* DÀNH CHO THÀNH VIÊN */}
                       <div className="px-5 py-3 bg-gray-50 mb-2">
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tài khoản</p>
-                        <p className="text-sm font-bold text-gray-800 truncate">{userName}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          Tài khoản
+                        </p>
+                        <p className="text-sm font-bold text-gray-800 truncate">
+                          {userName}
+                        </p>
                       </div>
-                      
-                      <Link to="/profile" className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+
+                      <Link
+                        to="/profile"
+                        className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
+                      >
                         <FaUser className="text-gray-400" /> Thông tin cá nhân
                       </Link>
-                      
-                      <Link to="/dashboard" className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+
+                      <Link
+                        to="/dashboard"
+                        className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
+                      >
                         <FaBox className="text-gray-400" /> Đơn hàng của tôi
                       </Link>
-                      
+
                       {/* Admin Dashboard Link - Only show for admin users */}
                       {hasAdminRole && (
-                        <a 
-                          href="http://localhost:3000/" 
+                        <a
+                          href="http://localhost:3000/"
                           className="flex items-center gap-3 px-5 py-2.5 hover:bg-purple-50 text-sm text-purple-700 transition-colors font-semibold"
                         >
-                          <span className="text-purple-500">🔐</span> Admin Dashboard
+                          <span className="text-purple-500">🔐</span> Admin
+                          Dashboard
                         </a>
                       )}
-                      
+
                       <div className="border-t border-gray-100 my-2"></div>
-                      
+
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 text-sm flex items-center gap-3 font-bold transition-all"
