@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { productApi, cartApi, wishlistApi } from '../components/Api/products';
 import { isAuthenticated } from '../utils/auth';
 import { useToast } from '../components/Toast/ToastContext';
@@ -8,7 +8,9 @@ import Reviews from '../components/Review/Reviews';
 const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+  const reviewsRef = useRef(null);
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,6 +21,18 @@ const ProductDetailPage = () => {
     if (id) fetchProduct();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Scroll đến phần Reviews nếu được yêu cầu từ trang OrderHistory
+  useEffect(() => {
+    if (location.state?.scrollToReview && reviewsRef.current && !loading) {
+      setTimeout(() => {
+        reviewsRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 300);
+    }
+  }, [location.state, loading]);
 
   const fetchProduct = async () => {
     try {
@@ -327,7 +341,7 @@ const ProductDetailPage = () => {
         </div>
 
         {/* REVIEWS SECTION */}
-        <div className="mt-10 bg-white rounded-2xl border border-gray-200 shadow-xl p-6 md:p-8">
+        <div ref={reviewsRef} className="mt-10 bg-white rounded-2xl border border-gray-200 shadow-xl p-6 md:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6 border-b border-gray-200 pb-4">
             Đánh giá sản phẩm
           </h2>
