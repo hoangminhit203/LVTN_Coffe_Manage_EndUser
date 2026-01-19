@@ -28,12 +28,10 @@ const apiRequest = async (endpoint, options = {}) => {
     defaultHeaders.Authorization = `Bearer ${token}`
   }
 
-  // 2. Luôn gửi Guest Key nếu có (để backend tracking)
+  // 2. Luôn gửi Guest Key (tự động tạo nếu chưa có)
   // Backend expect header "guestKey" (không phải "X-Guest-Key")
-  const guestKey = localStorage.getItem("guestKey")
-  if (guestKey) {
-    defaultHeaders["guestKey"] = guestKey
-  }
+  const guestKey = getGuestKey() // Gọi hàm để tự động tạo guestKey nếu chưa có
+  defaultHeaders["X-Guest-Key"] = guestKey
 
   // Merge headers
   const mergedHeaders = {
@@ -59,7 +57,16 @@ const apiRequest = async (endpoint, options = {}) => {
     method: config.method,
     headers: mergedHeaders,
     bodyType: config.body instanceof FormData ? "FormData" : typeof config.body,
+    isFormData: config.body instanceof FormData,
   })
+
+  // Debug: Log FormData entries
+  if (config.body instanceof FormData) {
+    console.log("📦 FormData being sent:")
+    for (let pair of config.body.entries()) {
+      console.log(`  ${pair[0]}:`, pair[1])
+    }
+  }
 
   const response = await fetch(url, config)
   const contentType = response.headers.get("content-type") || ""
@@ -105,26 +112,26 @@ const apiRequest = async (endpoint, options = {}) => {
 
 const api = {
   get: (endpoint, params = null) => {
-    let finalEndpoint = endpoint;
+    let finalEndpoint = endpoint
 
     // Kiểm tra nếu có params và params là một Object thực sự
-    if (params && typeof params === 'object') {
-      const searchParams = new URLSearchParams();
-      
+    if (params && typeof params === "object") {
+      const searchParams = new URLSearchParams()
+
       Object.entries(params).forEach(([key, value]) => {
         // Chỉ thêm vào URL các giá trị không rỗng
-        if (value !== undefined && value !== null && value !== '') {
-          searchParams.append(key, value);
+        if (value !== undefined && value !== null && value !== "") {
+          searchParams.append(key, value)
         }
-      });
+      })
 
-      const queryString = searchParams.toString();
+      const queryString = searchParams.toString()
       if (queryString) {
-        finalEndpoint += (finalEndpoint.includes('?') ? '&' : '?') + queryString;
+        finalEndpoint += (finalEndpoint.includes("?") ? "&" : "?") + queryString
       }
     }
 
-    return apiRequest(finalEndpoint, { method: "GET" });
+    return apiRequest(finalEndpoint, { method: "GET" })
   },
   post: (endpoint, body) =>
     apiRequest(endpoint, { method: "POST", body: JSON.stringify(body) }),
@@ -138,7 +145,8 @@ const api = {
 export const productApi = {
   getAll: (queryParams) => api.get("/Product", queryParams),
   getById: (id) => api.get(`/Product/${id}`),
-  getByCategory: (categoryId, params) => api.get(`/Product/by-category/${categoryId}`, { params }),
+  getByCategory: (categoryId, params) =>
+    api.get(`/Product/by-category/${categoryId}`, { params }),
 }
 export const wishlistApi = {
   add: async (variantId) => {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { orderApi } from '../components/Api/order';
 import { isAuthenticated } from '../utils/auth';
+import { useToast } from '../components/Toast';
 import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload, FaCheckCircle, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa';
 
 const OrderHistoryPage = () => {
@@ -21,6 +22,7 @@ const OrderHistoryPage = () => {
   const [returnError, setReturnError] = useState('');
   
   const navigate = useNavigate();
+  const toast = useToast();
 
   // --- 1. Fetch Orders ---
   useEffect(() => {
@@ -174,19 +176,27 @@ const OrderHistoryPage = () => {
       setReturnError('');
 
       const formData = new FormData();
+      // Thử cả lowercase và uppercase để khớp với backend
       formData.append('Reason', trimmedReason);
+      formData.append('reason', trimmedReason); // Backup nếu backend expect lowercase
       
       returnImages.forEach((image, index) => {
         formData.append('Images', image);
         console.log(`Image ${index + 1}:`, image.name, image.size, 'bytes');
       });
 
+      // Debug: Kiểm tra FormData trước khi gửi
+      console.log('📦 FormData entries:');
+      for (let pair of formData.entries()) {
+        console.log(`  ${pair[0]}:`, pair[1]);
+      }
 
-
+      // Gọi API gửi yêu cầu hoàn trả
+      const response = await orderApi.requestReturn(selectedOrderId, formData);
       
       // Response trực tiếp là { isSuccess, message, data }
       if (response.isSuccess === true || response.IsSuccess === true) {
-        alert('Yêu cầu hoàn trả đã được gửi thành công!');
+        toast.success('✅ Yêu cầu hoàn trả đã được gửi thành công! Chúng tôi sẽ xử lý trong thời gian sớm nhất.', 5000);
         closeReturnDialog();
         
         // Refresh orders list if logged in
@@ -197,7 +207,9 @@ const OrderHistoryPage = () => {
         }
       } else {
         console.warn('⚠️ Response không có isSuccess=true:', response);
-        setReturnError(response.message || response.Message || 'Không thể gửi yêu cầu hoàn trả');
+        const errorMsg = response.message || response.Message || 'Không thể gửi yêu cầu hoàn trả';
+        setReturnError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error("Lỗi gửi yêu cầu hoàn trả:", err);
@@ -210,9 +222,11 @@ const OrderHistoryPage = () => {
           .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
           .join('\n');
         setReturnError(errorMessages || 'Dữ liệu không hợp lệ');
+        toast.error('❌ ' + (errorMessages || 'Dữ liệu không hợp lệ'));
       } else {
         const errorMsg = err.response?.data?.message || err.response?.data?.Message || err.response?.data?.title || 'Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại.';
         setReturnError(errorMsg);
+        toast.error('❌ ' + errorMsg);
       }
     } finally {
       setReturnLoading(false);
