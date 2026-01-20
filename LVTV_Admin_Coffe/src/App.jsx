@@ -4,6 +4,8 @@ import { ThemeProvider } from "../src/contexts/theme-context";
 
 import Layout from "@/routes/layout";
 import DashboardPage from "@/routes/dashboard/page";
+import AnalyticsPage from "@/routes/analytics/page";
+import CustomersPage from "@/routes/customers/page";
 import CategoryPage from "@/routes/categories/page";
 import FlavorNotePage from "@/routes/flavorNote/page";
 import BrewingMethodPage from "@/routes/brewingmethod/page";
@@ -26,6 +28,10 @@ function App() {
                 {
                     index: true,
                     element: <DashboardPage />,
+                },
+                {
+                    path: "analytics",
+                    element: <AnalyticsPage />,
                 },
                    {
                     path: "categories",
@@ -67,13 +73,13 @@ function App() {
                     path: "users",
                     element: <UserPage />,
                 },
-                  {
+                {
                     path: '/return-requests',
                      element: <OrderReturnPage />
                 },
                 {
                     path: "reports",
-                    element: <h1 className="title">Báo Cáo</h1>,
+                    element: <CustomersPage />,
                 },
                 {
                     path: "customers",
