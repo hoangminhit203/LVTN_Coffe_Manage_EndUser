@@ -106,7 +106,7 @@ const apiRequest = async (endpoint, options = {}) => {
     throw error
   }
 
-  console.log("✅ API Response Success:", { url, data })
+  console.log(" API Response Success:", { url, data })
   return data
 }
 
@@ -182,7 +182,7 @@ export const cartApi = {
   getCart: () => api.get("/Cart"),
 
   // Kiểm tra stock cho toàn bộ giỏ hàng
-  // ✅ Tự động hỗ trợ cả authenticated users (Bearer token) và guest users (X-Guest-Key)
+  // Tự động hỗ trợ cả authenticated users (Bearer token) và guest users (X-Guest-Key)
   checkStock: () => api.get("/Cart/check-stock"),
 
   addItem: async (productVariantId, quantity = 1) => {

@@ -8,120 +8,120 @@ import ProductImage from "@/assets/product-image.jpg";
 
 export const navbarLinks = [
     {
-        title: "Dashboard",
+        title: "Bảng Diều Khiển",
         links: [
             {
-                label: "Dashboard",
+                label: "Bảng Diều Khiển",
                 icon: Home,
                 path: "/",
             },
             {
-                label: "Analytics",
+                label: "Phân Tích",
                 icon: ChartColumn,
                 path: "/analytics",
             },
             {
-                label: "Reports",
+                label: "Bao Cáo",
                 icon: NotepadText,
                 path: "/reports",
             },
         ],
     },
    {
-        title: "Categories",
+        title: "Loại Sản Phẩm",
         links: [
             {
-                label: "Categories",
+                label: "Loại Sản Phẩm",
                 icon: LayoutGrid,
                 path: "/categories",
             },
         ],
     },
     {
-        title: "Customers",
+        title: "Ngươi Dùng",
         links: [
             {
-                label: "Customers",
+                label: "Người dùng",
                 icon: Users,
                 path: "/users",
             },
             {
-                label: "New customer",
+                label: "Người Dùng Mới",
                 icon: UserPlus,
                 path: "/new-customer",
             },
             {
-                label: "Verified customers",
+                label: "Xác Thực Người Dùng",
                 icon: UserCheck,
                 path: "/verified-customers",
             },
         ],
     },
     {
-        title: "Marketing",
+        title: "Tiếp Thị",
         links: [
             {
-                label: "Promotions",
+                label: "Khuyến Mãi",
                 icon: PackagePlus,
                 path: "/promotions",
             },
             {
-                label: "Banners",
+                label: "Biểu Ngữ",
                 icon: Package,
                 path: "/banners",
             },
         ],
     },
     {
-        title: "Products",
+        title: "Sản Phẩm",
         links: [
             {
-                label: "Products",
+                label: "Sản Phẩm",
                 icon: Package,
                 path: "/products",
             },
             {
-                label: "New product",
+                label: "Tạo Sản Phẩm Mới",
                 icon: PackagePlus,
                 path: "/products/new",
             },
         ],
     },
     {
-        title: "Product attributes",
+        title: "Thuộc Tính Sản Phẩm",
          links: [
             {
-                label: "Flavor Notes",
+                label: "Hương Vị",
                 icon: NotebookText,
                 path: "/flavornotes",
             },
             {
-                label: "Brewing Methods",
+                label: "Phương Pháp Pha Chế",
                 icon: PanelTop,
                 path: "/brewingmethods",
             },
         ],
     },
     {
-        title: "Order Management",
+        title: "Quản Lý Đơn Hàng",
          links: [
             {
-                label: "All Orders",
+                label: "Tất Cả Đơn Hàng",
                 icon: NotebookText,
                 path: "/orders",
              },
                {
-                label: "Return Requests",
+                label: "Trả Hàng",
                 icon: NotebookText,
                 path: "/return-requests",
             },
         ],
     },
     {
-        title: "Settings",
+        title: "Cài Đặt",
         links: [
             {
-                label: "Settings",
+                label: "Cài Đặt",
                 icon: Settings,
                 path: "/settings",
             },
