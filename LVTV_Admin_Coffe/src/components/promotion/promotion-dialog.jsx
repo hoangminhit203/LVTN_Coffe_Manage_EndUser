@@ -102,12 +102,12 @@ const PromotionDialog = ({ open, onClose, onSubmit, editData }) => {
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Mô Tả</label>
                         <input name="description" value={form.description} onChange={handleChange} className="w-full border border-slate-300 px-3 py-2 rounded-lg" />
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Discount Type</label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Loại Giảm Giá</label>
                         <select name="discountType" value={form.discountType} onChange={handleChange} className="w-full border border-slate-300 px-3 py-2 rounded-lg">
                             <option value={0}>Percent (%)</option>
                             <option value={1}>Fixed (đ)</option>
@@ -115,46 +115,46 @@ const PromotionDialog = ({ open, onClose, onSubmit, editData }) => {
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Discount Value</label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Giá Trị Giảm Giá</label>
                         <input type="number" name="discountValue" value={form.discountValue} onChange={handleChange} className={`w-full border ${errors.discountValue ? "border-red-500" : "border-slate-300"} px-3 py-2 rounded-lg`} />
                         {errors.discountValue && <div className="mt-1 text-red-500 text-sm">{errors.discountValue}</div>}
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Max Discount Amount</label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Giá Trị Giảm Giá Tối Đa</label>
                         <input type="number" name="maxDiscountAmount" value={form.maxDiscountAmount} onChange={handleChange} className="w-full border border-slate-300 px-3 py-2 rounded-lg" />
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Min Order Value</label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Giá Trị Đơn Hàng Tối Thiểu</label>
                         <input type="number" name="minOrderValue" value={form.minOrderValue} onChange={handleChange} className="w-full border border-slate-300 px-3 py-2 rounded-lg" />
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Start Date <span className="text-red-500">*</span></label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Ngày Bắt Đầu <span className="text-red-500">*</span></label>
                         <input type="datetime-local" name="startDate" value={form.startDate} onChange={handleChange} className={`w-full border ${errors.startDate ? "border-red-500" : "border-slate-300"} px-3 py-2 rounded-lg`} />
                         {errors.startDate && <div className="mt-1 text-red-500 text-sm">{errors.startDate}</div>}
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">End Date <span className="text-red-500">*</span></label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Ngày Kết Thúc <span className="text-red-500">*</span></label>
                         <input type="datetime-local" name="endDate" value={form.endDate} onChange={handleChange} className={`w-full border ${errors.endDate ? "border-red-500" : "border-slate-300"} px-3 py-2 rounded-lg`} />
                         {errors.endDate && <div className="mt-1 text-red-500 text-sm">{errors.endDate}</div>}
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Usage Limit</label>
+                        <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Giới Hạn Sử Dụng</label>
                         <input type="number" name="usageLimit" value={form.usageLimit} onChange={handleChange} className="w-full border border-slate-300 px-3 py-2 rounded-lg" />
                     </div>
 
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                         <input type="checkbox" name="isEnabled" checked={form.isEnabled} onChange={handleChange} className="w-4 h-4" />
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Enabled</label>
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Kích Hoạt</label>
                     </div>
 
                     <div className="sm:col-span-2 flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <button type="button" onClick={handleClose} className="px-4 py-2 border border-slate-300 rounded-lg">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Save</button>
+                        <button type="button" onClick={handleClose} className="px-4 py-2 border border-slate-300 rounded-lg">Hủy</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Lưu</button>
                     </div>
                 </form>
             </div>
