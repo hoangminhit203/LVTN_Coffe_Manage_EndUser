@@ -181,9 +181,9 @@ const BannerPage = () => {
             )}
 
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Banners</h1>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Biểu Ngữ</h1>
                 <button onClick={() => { setOpenDialog(true); setEditingBanner(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg">
-                    <Plus size={20} /> Add Banner
+                    <Plus size={20} /> Thêm Mới
                 </button>
             </div>
 

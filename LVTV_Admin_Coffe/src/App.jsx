@@ -73,15 +73,15 @@ function App() {
                 },
                 {
                     path: "reports",
-                    element: <h1 className="title">Reports</h1>,
+                    element: <h1 className="title">Báo Cáo</h1>,
                 },
                 {
                     path: "customers",
-                    element: <h1 className="title">Customers</h1>,
+                    element: <h1 className="title">Khách Hàng</h1>,
                 },
                 {
                     path: "new-customer",
-                    element: <h1 className="title">New Customer</h1>,
+                    element: <h1 className="title">Khách Hàng Mới</h1>,
                 },
               
                 {
@@ -90,7 +90,7 @@ function App() {
                 },
                 {
                     path: "settings",
-                    element: <h1 className="title">Settings</h1>,
+                    element: <h1 className="title">Cài Đặt</h1>,
                 },
                 {
                     path: "*",
