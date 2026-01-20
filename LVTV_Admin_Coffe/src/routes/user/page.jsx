@@ -44,7 +44,7 @@ const UserPage = () => {
       }));
     } catch (error) {
       console.error(error);
-      alert("❌ Không thể tải danh sách người dùng!");
+      alert("Không thể tải danh sách người dùng!");
     } finally {
       setLoading(false);
     }
@@ -55,17 +55,17 @@ const UserPage = () => {
     try {
       if (editingUser) {
         await updateUser(editingUser.id, data);
-        alert(`✅ Cập nhật người dùng "${data.userName}" thành công!`);
+        alert(`Cập nhật người dùng "${data.userName}" thành công!`);
       } else {
         await createUser(data);
-        alert(`✅ Thêm người dùng "${data.userName}" thành công!`);
+        alert(`Thêm người dùng "${data.userName}" thành công!`);
       }
       setOpenDialog(false);
       setEditingUser(null);
       fetchUsers();
     } catch (error) {
       console.error("Save failed:", error);
-      alert(`❌ ${error.response?.data?.message || "Thao tác thất bại! Vui lòng thử lại."}`);
+      alert(` ${error.response?.data?.message || "Thao tác thất bại! Vui lòng thử lại."}`);
     }
   };
 
@@ -82,7 +82,7 @@ const UserPage = () => {
       setViewUser({ show: true, data });
     } catch (error) {
       console.error("Load user detail failed:", error);
-      alert("❌ Không thể tải thông tin người dùng!");
+      alert(" Không thể tải thông tin người dùng!");
     }
   };
 
@@ -100,7 +100,7 @@ const UserPage = () => {
       fetchUsers();
     } catch (error) {
       console.error("Delete failed:", error);
-      alert(`❌ ${error.response?.data?.message || "Xóa thất bại!"}`);
+      alert(` ${error.response?.data?.message || "Xóa thất bại!"}`);
     }
   };
 
