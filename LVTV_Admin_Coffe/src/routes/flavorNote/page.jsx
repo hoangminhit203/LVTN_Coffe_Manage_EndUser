@@ -66,14 +66,14 @@ const FlavorNotePage = () => {
         setNotification({
           show: true,
           type: "success",
-          message: "Flavor note updated successfully!"
+          message: "Ghi chú hương vị đã được cập nhật thành công!"
         });
       } else {
         await createdFlavorNote(data);
         setNotification({
           show: true,
           type: "success",
-          message: "Flavor note added successfully!"
+          message: "Ghi chú hương vị đã được thêm thành công!"
         });
       }
       setOpenDialog(false);
@@ -122,7 +122,7 @@ const FlavorNotePage = () => {
       setNotification({
         show: true,
         type: "success",
-        message: "Flavor note deleted successfully!"
+        message: "Ghi chú hương vị đã được xóa thành công!"
       });
       setDeleteConfirm({ show: false, id: null });
       fetchFlavorNotes();

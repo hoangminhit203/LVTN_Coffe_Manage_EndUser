@@ -49,12 +49,12 @@ const PromotionPage = () => {
                 // Update
                 setUpdatingIds((prev) => [...prev, editingPromotion.id]);
                 await updatePromotion(editingPromotion.id, formData);
-                setNotification({ show: true, type: "success", message: "Promotion updated successfully" });
+                setNotification({ show: true, type: "success", message: "Khuyến mãi đã được cập nhật" });
                 setEditingPromotion(null);
             } else {
                 // Create
                 await createPromotion(formData);
-                setNotification({ show: true, type: "success", message: "Promotion created successfully" });
+                setNotification({ show: true, type: "success", message: "Khuyến mãi đã được thêm thành công!" });
             }
             setOpenDialog(false);
             fetchPromotions();
@@ -73,7 +73,7 @@ const PromotionPage = () => {
             const payload = { ...promotion, isEnabled: !promotion.isEnabled };
             await updatePromotion(promotion.id, payload);
             setPromotions((prev) => prev.map((p) => (p.id === promotion.id ? { ...p, isEnabled: !p.isEnabled } : p)));
-            setNotification({ show: true, type: "success", message: "Promotion updated" });
+            setNotification({ show: true, type: "success", message: "Khuyến mãi đã được cập nhật" });
         } catch (error) {
             console.error(error);
             setNotification({ show: true, type: "error", message: error.response?.data?.message ?? "Update failed" });
@@ -95,7 +95,7 @@ const PromotionPage = () => {
         try {
             setUpdatingIds((prev) => [...prev, deleteConfirm.id]);
             await deletePromotion(deleteConfirm.id);
-            setNotification({ show: true, type: "success", message: "Promotion deleted" });
+            setNotification({ show: true, type: "success", message: "Xóa khuyến mãi thành công!" });
             setDeleteConfirm({ show: false, id: null });
             fetchPromotions();
         } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../assets/Coffe-Logo.jpg";
 import {
   FaUser,
@@ -40,7 +40,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hàm lấy chữ cái đầu của tên
   const getInitials = (name) => {
     if (!name) return "U";
     const parts = name.trim().split(" ");
@@ -50,33 +49,18 @@ const Navbar = () => {
     return name[0].toUpperCase();
   };
 
-  // Hàm tạo màu nền từ tên
   const getAvatarColor = (name) => {
     if (!name) return "#6B7280";
-    const colors = [
-      "#EF4444",
-      "#F59E0B",
-      "#10B981",
-      "#3B82F6",
-      "#8B5CF6",
-      "#EC4899",
-      "#14B8A6",
-      "#F97316",
-      "#06B6D4",
-      "#6366F1",
-    ];
+    const colors = ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#06B6D4", "#6366F1"];
     const charCode = name.charCodeAt(0) + name.charCodeAt(name.length - 1);
     return colors[charCode % colors.length];
   };
 
-  // Hàm lấy số lượng từ API
   const fetchCartCount = async () => {
-    // Luôn cho phép fetch cart count, apiRequest sẽ tự xử lý Guest-Key hoặc Token
     try {
       const response = await cartApi.getCart();
       const data = response.data || response;
-      const count =
-        data.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+      const count = data.items?.reduce((total, item) => total + item.quantity, 0) || 0;
       setCartCount(count);
     } catch (err) {
       console.error("Lỗi lấy số lượng giỏ hàng:", err);
@@ -84,7 +68,6 @@ const Navbar = () => {
     }
   };
 
-  // Lắng nghe thay đổi URL (Chuyển trang)
   useEffect(() => {
     setIsAuth(isAuthenticated());
     setIsMobileMenuOpen(false);
@@ -99,7 +82,6 @@ const Navbar = () => {
     }
   }, [location]);
 
-  // Hàm lấy username từ API
   const fetchUserName = async () => {
     try {
       const response = await userApi.me();
@@ -117,15 +99,11 @@ const Navbar = () => {
     }
   };
 
-  // Lắng nghe sự kiện "cartUpdated"
   useEffect(() => {
     window.addEventListener("cartUpdated", fetchCartCount);
-    return () => {
-      window.removeEventListener("cartUpdated", fetchCartCount);
-    };
+    return () => window.removeEventListener("cartUpdated", fetchCartCount);
   }, []);
 
-  // Xử lý đóng dropdown khi click ngoài
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -146,7 +124,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* LOGO */}
@@ -163,58 +141,62 @@ const Navbar = () => {
           <ul className="hidden md:flex items-center gap-6">
             {Menus.map((m) => (
               <li key={m.id}>
-                <Link
+                <NavLink
                   to={m.link}
-                  className="text-gray-700 font-medium py-2 border-b-2 border-transparent hover:text-black hover:border-red-500 transition"
+                  className={({ isActive }) =>
+                    `font-medium py-2 border-b-2 transition-all duration-300 ${
+                      isActive
+                        ? "text-red-600 border-red-600"
+                        : "text-gray-700 border-transparent hover:text-red-500 hover:border-red-500"
+                    }`
+                  }
                 >
                   {m.name}
-                </Link>
+                </NavLink>
               </li>
             ))}
           </ul>
 
           {/* ACTION BUTTONS */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* ICON GIỎ HÀNG */}
-            <Link
+            {/* GIỎ HÀNG */}
+            <NavLink
               to="/cart"
-              className="relative w-10 h-10 flex items-center justify-center text-gray-700 hover:bg-gray-100 rounded-full transition-all"
+              className={({ isActive }) => 
+                `relative w-10 h-10 flex items-center justify-center rounded-full transition-all ${
+                  isActive ? "bg-red-50 text-red-600" : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
             >
               <FaShoppingCart className="text-xl" />
               {cartCount > 0 && (
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white animate-pulse">
+                <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
-            </Link>
-            {/* ICON WISHLIST (MỚI THÊM) */}
-            <Link
+            </NavLink>
+
+            {/* WISHLIST */}
+            <NavLink
               to="/wishlist"
-              className="relative w-10 h-10 flex items-center justify-center text-gray-700 hover:bg-red-50 rounded-full transition-all group"
-              title="Danh sách yêu thích"
+              className={({ isActive }) => 
+                `relative w-10 h-10 flex items-center justify-center rounded-full transition-all ${
+                  isActive ? "bg-red-50 text-red-600" : "text-gray-700 hover:bg-red-50"
+                }`
+              }
             >
-              <FaHeart className="text-xl group-hover:text-red-600 transition-colors" />
-              {/* Nếu bạn muốn hiển thị số lượng yêu thích, có thể thêm badge tương tự giỏ hàng ở đây */}
-            </Link>
+              <FaHeart className="text-xl" />
+            </NavLink>
 
             {/* USER DROPDOWN */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors overflow-hidden"
-                style={
-                  isAuth && userName
-                    ? {
-                        backgroundColor: getAvatarColor(userName),
-                        borderColor: getAvatarColor(userName),
-                      }
-                    : {}
-                }
+                style={isAuth && userName ? { backgroundColor: getAvatarColor(userName), borderColor: getAvatarColor(userName) } : {}}
               >
                 {isAuth && userName ? (
-                  <span className="text-white font-bold text-sm">
-                    {getInitials(userName)}
-                  </span>
+                  <span className="text-white font-bold text-sm">{getInitials(userName)}</span>
                 ) : (
                   <FaUser />
                 )}
@@ -224,75 +206,36 @@ const Navbar = () => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl py-3 border border-gray-100 z-[60] overflow-hidden">
                   {!isAuth ? (
                     <>
-                      {/* DÀNH CHO KHÁCH VÃNG LAI */}
-                      <Link
-                        to="/login"
-                        className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 text-sm text-gray-700 transition-colors"
-                      >
-                        <FaSignInAlt className="text-blue-500" />
-                        <span className="font-medium">Đăng nhập</span>
+                      <Link to="/login" className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 text-sm text-gray-700 transition-colors">
+                        <FaSignInAlt className="text-blue-500" /> <span className="font-medium">Đăng nhập</span>
                       </Link>
-                      <Link
-                        to="/register"
-                        className="flex items-center gap-3 px-5 py-3 hover:bg-green-50 text-sm text-gray-700 transition-colors"
-                      >
-                        <FaUserPlus className="text-green-500" />
-                        <span className="font-medium">Đăng ký thành viên</span>
+                      <Link to="/register" className="flex items-center gap-3 px-5 py-3 hover:bg-green-50 text-sm text-gray-700 transition-colors">
+                        <FaUserPlus className="text-green-500" /> <span className="font-medium">Đăng ký thành viên</span>
                       </Link>
-
                       <div className="border-t border-gray-50 my-2"></div>
-
-                      <Link
-                        to="/order-history"
-                        className="flex items-center gap-3 px-5 py-3 hover:bg-orange-50 text-sm text-orange-600 transition-colors font-bold"
-                      >
-                        <FaBox className="text-orange-500" />
-                        Tra cứu đơn hàng
+                      <Link to="/order-history" className="flex items-center gap-3 px-5 py-3 hover:bg-orange-50 text-sm text-orange-600 transition-colors font-bold">
+                        <FaBox className="text-orange-500" /> Tra cứu đơn hàng
                       </Link>
                     </>
                   ) : (
                     <>
-                      {/* DÀNH CHO THÀNH VIÊN */}
                       <div className="px-5 py-3 bg-gray-50 mb-2">
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                          Tài khoản
-                        </p>
-                        <p className="text-sm font-bold text-gray-800 truncate">
-                          {userName}
-                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tài khoản</p>
+                        <p className="text-sm font-bold text-gray-800 truncate">{userName}</p>
                       </div>
-
-                      <Link
-                        to="/profile"
-                        className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
-                      >
+                      <Link to="/profile" className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
                         <FaUser className="text-gray-400" /> Thông tin cá nhân
                       </Link>
-
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
-                      >
+                      <Link to="/dashboard" className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
                         <FaBox className="text-gray-400" /> Đơn hàng của tôi
                       </Link>
-
-                      {/* Admin Dashboard Link - Only show for admin users */}
                       {hasAdminRole && (
-                        <a
-                          href="http://localhost:3000/"
-                          className="flex items-center gap-3 px-5 py-2.5 hover:bg-purple-50 text-sm text-purple-700 transition-colors font-semibold"
-                        >
-                          <span className="text-purple-500">🔐</span> Admin
-                          Dashboard
+                        <a href="http://localhost:3000/" className="flex items-center gap-3 px-5 py-2.5 hover:bg-purple-50 text-sm text-purple-700 transition-colors font-semibold">
+                          <span className="text-purple-500">🔐</span> Admin Dashboard
                         </a>
                       )}
-
                       <div className="border-t border-gray-100 my-2"></div>
-
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 text-sm flex items-center gap-3 font-bold transition-all"
-                      >
+                      <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 text-sm flex items-center gap-3 font-bold transition-all">
                         <FaSignOutAlt /> Đăng xuất
                       </button>
                     </>
@@ -302,10 +245,7 @@ const Navbar = () => {
             </div>
 
             {/* MOBILE MENU BUTTON */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden text-xl p-2 text-gray-600"
-            >
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden text-xl p-2 text-gray-600">
               {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
             </button>
           </div>
@@ -317,24 +257,31 @@ const Navbar = () => {
             <ul className="flex flex-col gap-4">
               {Menus.map((m) => (
                 <li key={m.id}>
-                  <Link
+                  <NavLink
                     to={m.link}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-gray-700 hover:text-red-500 block px-2 font-medium"
+                    className={({ isActive }) =>
+                      `block px-2 font-medium transition-all ${
+                        isActive ? "text-red-600 border-l-4 border-red-600 pl-3" : "text-gray-700"
+                      }`
+                    }
                   >
                     {m.name}
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
-              {/* Thêm link đơn hàng vào mobile menu */}
               <li>
-                <Link
+                <NavLink
                   to={isAuth ? "/dashboard" : "/order-history"}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-orange-600 block px-2 font-bold flex items-center gap-2"
+                  className={({ isActive }) => 
+                    `block px-2 font-bold flex items-center gap-2 transition-all ${
+                      isActive ? "text-red-600" : "text-orange-600"
+                    }`
+                  }
                 >
                   <FaBox /> {isAuth ? "Đơn hàng của tôi" : "Tra cứu đơn hàng"}
-                </Link>
+                </NavLink>
               </li>
             </ul>
           </div>

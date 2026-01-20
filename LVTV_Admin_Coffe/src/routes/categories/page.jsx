@@ -66,14 +66,14 @@ const CategoryPage = () => {
         setNotification({
           show: true,
           type: "success",
-          message: "Category updated successfully!"
+          message: "Danh mục đã được cập nhật thành công!"
         });
       } else {
         await createdCategory(data);
         setNotification({
           show: true,
           type: "success",
-          message: "Category added successfully!"
+          message: "Danh mục đã được thêm thành công!"
         });
       }
       setOpenDialog(false);
@@ -122,7 +122,7 @@ const CategoryPage = () => {
       setNotification({
         show: true,
         type: "success",
-        message: "Category deleted successfully!"
+        message: "Danh mục đã được xóa thành công!"
       });
       setDeleteConfirm({ show: false, id: null });
       fetchCategories();
