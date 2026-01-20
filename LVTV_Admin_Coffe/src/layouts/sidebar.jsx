@@ -31,7 +31,7 @@ export const Sidebar = forwardRef(({ collapsed }, ref) => {
                     alt="Logoipsum"
                     className="hidden dark:block w-10 h-10 object-contain"
                 />
-                {!collapsed && <p className="text-lg font-medium text-slate-900 transition-colors dark:text-slate-50">Logoipsum</p>}
+                {!collapsed && <p className="text-lg font-medium text-slate-900 transition-colors dark:text-slate-50">Admin</p>}
             </div>
             <div className="flex w-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:_thin]">
                 {navbarLinks.map((navbarLink) => (

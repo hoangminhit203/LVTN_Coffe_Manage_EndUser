@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { orderApi } from '../components/Api/order';
 import { isAuthenticated } from '../utils/auth';
 import { useToast } from '../components/Toast';
-import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload, FaCheckCircle, FaTimesCircle, FaExclamationCircle, FaStar } from 'react-icons/fa';
+import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload, FaCheckCircle, FaTimesCircle, FaExclamationCircle, FaStar, FaSync } from 'react-icons/fa';
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
@@ -12,6 +12,7 @@ const OrderHistoryPage = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // States cho tính năng hoàn trả
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
@@ -29,39 +30,69 @@ const OrderHistoryPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
+  // Hàm fetch orders - tách riêng để tái sử dụng
+  const fetchOrders = async () => {
+    const authenticated = isAuthenticated();
+    setIsLoggedIn(authenticated);
+
+    if (authenticated) {
+      try {
+        const response = await orderApi.getHistory();
+        console.log('🔔 order history raw response:', response);
+        const data = response.data || response;
+        
+        if (Array.isArray(data)) {
+          data.forEach((o) => {
+            const items = o.items || o.orderItems || [];
+            items.forEach((it) => {
+              console.log(`Order ${o.id} item:`, it);
+              console.log(`  - id: ${it.id}, productId: ${it.productId}, productVariantId: ${it.productVariantId}`);
+            });
+          });
+        }
+        setOrders(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Lỗi lấy lịch sử đơn hàng:", err);
+      }
+    }
+  };
+
+  // Hàm làm mới danh sách
+  const handleRefreshOrders = async () => {
+    if (!isLoggedIn) return;
+    
+    try {
+      setRefreshing(true);
+      await fetchOrders();
+      toast.success('✅ Đã cập nhật danh sách đơn hàng!');
+    } catch (err) {
+      console.error("Lỗi làm mới đơn hàng:", err);
+      toast.error('❌ Không thể làm mới danh sách đơn hàng');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // --- 1. Fetch Orders ---
   useEffect(() => {
     const checkAuthAndFetchOrders = async () => {
-      const authenticated = isAuthenticated();
-      setIsLoggedIn(authenticated);
-
-      if (authenticated) {
-        try {
-          setLoading(true);
-          const response = await orderApi.getHistory();
-          console.log('🔔 order history raw response:', response);
-          const data = response.data || response;
-          
-          if (Array.isArray(data)) {
-            data.forEach((o) => {
-              const items = o.items || o.orderItems || [];
-              items.forEach((it) => {
-                console.log(`Order ${o.id} item:`, it);
-                console.log(`  - id: ${it.id}, productId: ${it.productId}, productVariantId: ${it.productVariantId}`);
-              });
-            });
-          }
-          setOrders(Array.isArray(data) ? data : []);
-        } catch (err) {
-          console.error("Lỗi lấy lịch sử đơn hàng:", err);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+      try {
+        setLoading(true);
+        await fetchOrders();
+      } finally {
         setLoading(false);
       }
     };
     checkAuthAndFetchOrders();
+
+    // Auto-refresh mỗi 30 giây nếu đã đăng nhập
+    const intervalId = setInterval(() => {
+      if (isAuthenticated()) {
+        fetchOrders();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // --- 2. Helper Functions ---
@@ -121,19 +152,17 @@ const OrderHistoryPage = () => {
     setSearchError('');
     
     if (isLoggedIn) {
-      const fetchOrders = async () => {
+      const refetchOrders = async () => {
         try {
           setLoading(true);
-          const response = await orderApi.getHistory();
-          const data = response.data || response;
-          setOrders(Array.isArray(data) ? data : []);
+          await fetchOrders();
         } catch (err) {
           console.error("Lỗi lấy lịch sử đơn hàng:", err);
         } finally {
           setLoading(false);
         }
       };
-      fetchOrders();
+      refetchOrders();
     } else {
       setOrders([]);
     }
@@ -188,18 +217,7 @@ const OrderHistoryPage = () => {
         closeCancelDialog();
         
         // Refresh orders list
-        if (isLoggedIn) {
-          const historyResponse = await orderApi.getHistory();
-          const data = historyResponse.data || historyResponse;
-          setOrders(Array.isArray(data) ? data : []);
-        } else {
-          // Nếu đang tra cứu đơn hàng
-          if (searchOrderId) {
-            const searchResponse = await orderApi.getById(searchOrderId);
-            const data = searchResponse.data || searchResponse;
-            setOrders(data ? [data] : []);
-          }
-        }
+        await fetchOrders();
       } else {
         const errorMsg = response.message || response.Message || 'Không thể hủy đơn hàng';
         toast.error('❌ ' + errorMsg);
@@ -257,11 +275,7 @@ const OrderHistoryPage = () => {
         closeReturnDialog();
         
         // Refresh orders list if logged in
-        if (isLoggedIn) {
-          const historyResponse = await orderApi.getHistory();
-          const data = historyResponse.data || historyResponse;
-          setOrders(Array.isArray(data) ? data :  []);
-        }
+        await fetchOrders();
       } else {
         console.warn('⚠️ Response không có isSuccess=true:', response);
         const errorMsg = response.message || response.Message || 'Không thể gửi yêu cầu hoàn trả';
@@ -295,10 +309,24 @@ const OrderHistoryPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-3xl font-black text-gray-800 mb-8 flex items-center gap-3">
-          <FaBox className="text-blue-600" /> 
-          {isLoggedIn ? 'ĐƠN HÀNG CỦA TÔI' : 'TRA CỨU ĐƠN HÀNG'}
-        </h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-black text-gray-800 flex items-center gap-3">
+            <FaBox className="text-blue-600" /> 
+            {isLoggedIn ? 'ĐƠN HÀNG CỦA TÔI' : 'TRA CỨU ĐƠN HÀNG'}
+          </h1>
+          
+          {/* Nút làm mới - chỉ hiển thị khi đã đăng nhập */}
+          {isLoggedIn && (
+            <button
+              onClick={handleRefreshOrders}
+              disabled={refreshing}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FaSync className={`${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
+            </button>
+          )}
+        </div>
 
         {/* Search Box */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
@@ -392,20 +420,21 @@ const OrderHistoryPage = () => {
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${getStatusColor(order.status)}`}>
                             {order.status}
                           </span>
-                          {/* Badge trạng thái hoàn trả */}
-                          {order.status?.toLowerCase() === 'returned' && order.returnRequestStatus && (
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${
-                              order.returnRequestStatus === 'approved' 
+                          
+                          {/* Badge trạng thái hoàn trả - hiển thị cho cả trường hợp đã delivered */}
+                          {(order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'returned') && order.returnRequestStatus && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 ${
+                              order.returnRequestStatus?.toLowerCase() === 'approved' 
                                 ? 'bg-green-100 text-green-700' 
-                                : order.returnRequestStatus === 'rejected'
+                                : order.returnRequestStatus?.toLowerCase() === 'rejected'
                                 ? 'bg-red-100 text-red-700'
                                 : 'bg-yellow-100 text-yellow-700'
                             }`}>
-                              {order.returnRequestStatus === 'approved' 
-                                ? '✓ Đã duyệt' 
-                                : order.returnRequestStatus === 'rejected'
-                                ? '✗ Từ chối'
-                                : '⏳ Chờ duyệt'}
+                              {order.returnRequestStatus?.toLowerCase() === 'approved' 
+                                ? <><FaCheckCircle className="text-[8px]" /> Hoàn trả: Đã duyệt</> 
+                                : order.returnRequestStatus?.toLowerCase() === 'rejected'
+                                ? <><FaTimesCircle className="text-[8px]" /> Hoàn trả: Từ chối</>
+                                : <><FaClock className="text-[8px]" /> Hoàn trả: Chờ duyệt</>}
                             </span>
                           )}
                         </div>
@@ -513,47 +542,47 @@ const OrderHistoryPage = () => {
 
                   {/* Expanded Details */}
                   {String(expandedOrderId) === String(order.id) && (
-                    <div className="border-t border-gray-100 bg-gradient-to-br from-gray-50 to-white">
+                    <div className="border-t border-gray-100 bg-linear-to-br from-gray-50 to-white">
                       {/* Thông tin đơn hàng */}
                       <div className="p-6 border-b border-gray-200">
                         <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Thông tin đơn hàng</h3>
                         
                         {/* Thông báo trạng thái hoàn trả từ Admin */}
-                        {order.status?.toLowerCase() === 'returned' && order.returnRequestStatus && (
+                        {(order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'returned') && order.returnRequestStatus && (
                           <div className={`mb-4 rounded-xl p-4 border-2 ${
-                            order.returnRequestStatus === 'approved' 
+                            order.returnRequestStatus?.toLowerCase() === 'approved' 
                               ? 'bg-green-50 border-green-200' 
-                              : order.returnRequestStatus === 'rejected'
+                              : order.returnRequestStatus?.toLowerCase() === 'rejected'
                               ? 'bg-red-50 border-red-200'
                               : 'bg-yellow-50 border-yellow-200'
                           }`}>
                             <div className="flex items-start gap-3">
-                              {order.returnRequestStatus === 'approved' ? (
-                                <FaCheckCircle className="text-green-600 text-2xl flex-shrink-0 mt-0.5" />
-                              ) : order.returnRequestStatus === 'rejected' ? (
-                                <FaTimesCircle className="text-red-600 text-2xl flex-shrink-0 mt-0.5" />
+                              {order.returnRequestStatus?.toLowerCase() === 'approved' ? (
+                                <FaCheckCircle className="text-green-600 text-2xl shrink-0 mt-0.5" />
+                              ) : order.returnRequestStatus?.toLowerCase() === 'rejected' ? (
+                                <FaTimesCircle className="text-red-600 text-2xl shrink-0 mt-0.5" />
                               ) : (
-                                <FaExclamationCircle className="text-yellow-600 text-2xl flex-shrink-0 mt-0.5" />
+                                <FaExclamationCircle className="text-yellow-600 text-2xl shrink-0 mt-0.5" />
                               )}
                               <div className="flex-1">
                                 <h4 className={`font-bold text-base mb-2 ${
-                                  order.returnRequestStatus === 'approved' 
+                                  order.returnRequestStatus?.toLowerCase() === 'approved' 
                                     ? 'text-green-800' 
-                                    : order.returnRequestStatus === 'rejected'
+                                    : order.returnRequestStatus?.toLowerCase() === 'rejected'
                                     ? 'text-red-800'
                                     : 'text-yellow-800'
                                 }`}>
-                                  {order.returnRequestStatus === 'approved' 
+                                  {order.returnRequestStatus?.toLowerCase() === 'approved' 
                                     ? '✅ Yêu cầu hoàn trả đã được chấp nhận' 
-                                    : order.returnRequestStatus === 'rejected'
+                                    : order.returnRequestStatus?.toLowerCase() === 'rejected'
                                     ? '❌ Yêu cầu hoàn trả đã bị từ chối'
                                     : '⏳ Yêu cầu hoàn trả đang được xử lý'}
                                 </h4>
                                 {order.returnAdminNote && (
                                   <div className={`text-sm ${
-                                    order.returnRequestStatus === 'approved' 
+                                    order.returnRequestStatus?.toLowerCase() === 'approved' 
                                       ? 'text-green-700' 
-                                      : order.returnRequestStatus === 'rejected'
+                                      : order.returnRequestStatus?.toLowerCase() === 'rejected'
                                       ? 'text-red-700'
                                       : 'text-yellow-700'
                                   }`}>
@@ -563,9 +592,14 @@ const OrderHistoryPage = () => {
                                     </p>
                                   </div>
                                 )}
-                                {order.returnRequestStatus === 'approved' && (
+                                {order.returnRequestStatus?.toLowerCase() === 'approved' && (
                                   <div className="mt-3 text-sm text-green-700">
                                     <p>💰 Chúng tôi sẽ hoàn tiền cho bạn trong thời gian sớm nhất.</p>
+                                  </div>
+                                )}
+                                {order.returnRequestStatus?.toLowerCase() === 'rejected' && (
+                                  <div className="mt-3 text-sm text-red-700">
+                                    <p>ℹ️ Vui lòng liên hệ bộ phận CSKH để biết thêm chi tiết.</p>
                                   </div>
                                 )}
                               </div>
@@ -649,7 +683,7 @@ const OrderHistoryPage = () => {
                               <div key={it.id} className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-gray-100">
                                 <div className="flex gap-4">
                                   {/* Hình ảnh sản phẩm */}
-                                  <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                                  <div className="w-20 h-20 shrink-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
                                     <img
                                       src={it.imageUrl || it.productImage || it.image || 'https://via.placeholder.com/80'}
                                       alt={it.productName}
@@ -673,7 +707,7 @@ const OrderHistoryPage = () => {
                                   </div>
 
                                   {/* Thành tiền */}
-                                  <div className="text-right flex-shrink-0">
+                                  <div className="text-right shrink-0">
                                     <p className="text-xs text-gray-500 mb-1">Thành tiền</p>
                                     <p className="text-lg font-black text-red-600">
                                       {formatPrice(it.subtotal || (it.priceAtPurchase || it.productPrice) * it.quantity)}
