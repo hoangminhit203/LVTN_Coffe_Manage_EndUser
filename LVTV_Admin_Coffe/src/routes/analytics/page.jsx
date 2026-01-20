@@ -99,6 +99,41 @@ const AnalyticsPage = () => {
         });
     };
 
+    const handleExportExcel = async () => {
+        try {
+            const queryParams = new URLSearchParams({
+                fromDate: filters.fromDate,
+                toDate: filters.toDate,
+                groupBy: filters.groupBy,
+                status: filters.status,
+            });
+
+            const response = await fetch(`https://localhost:44384/api/Statistics/export/revenue?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `revenue_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (err) {
+            console.error('Export error:', err);
+            alert('Không thể xuất file Excel. Vui lòng thử lại.');
+        }
+    };
+
     const formatCurrency = (value) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
@@ -165,11 +200,11 @@ const AnalyticsPage = () => {
                 <h1 className="title">Phân Tích Doanh Thu</h1>
                 <div className="flex gap-2">
                     <button 
-                        onClick={fetchAnalyticsData}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                     >
-                        <RefreshCw size={18} />
-                        Làm mới
+                        <Download size={18} />
+                        Xuất Excel
                     </button>
                 </div>
             </div>
