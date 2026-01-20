@@ -5,6 +5,11 @@ import { isAuthenticated } from '../utils/auth';
 import { useToast } from '../components/Toast';
 import { FaBox, FaClock, FaShoppingBag, FaSearch, FaUndo, FaTimes, FaUpload, FaCheckCircle, FaTimesCircle, FaExclamationCircle, FaStar, FaSync } from 'react-icons/fa';
 
+// Helper function để lấy guestKey từ localStorage
+const getGuestKey = () => {
+  return localStorage.getItem('guestKey');
+};
+
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +58,20 @@ const OrderHistoryPage = () => {
         setOrders(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Lỗi lấy lịch sử đơn hàng:", err);
+      }
+    } else {
+      // Khách vãng lai: tự động load đơn hàng theo guestKey
+      const guestKey = getGuestKey();
+      if (guestKey) {
+        try {
+          const response = await orderApi.getByGuestKey(guestKey);
+          const data = response.data || response;
+          setOrders(Array.isArray(data) ? data : []);
+          console.log('🔔 Loaded guest orders:', data);
+        } catch (err) {
+          console.error("Lỗi lấy đơn hàng khách vãng lai:", err);
+          setOrders([]);
+        }
       }
     }
   };
@@ -128,15 +147,45 @@ const OrderHistoryPage = () => {
     try {
       setSearchLoading(true);
       setSearchError('');
-      const response = await orderApi.getById(searchOrderId);
-      const data = response.data || response;
       
-      if (data) {
-        setOrders([data]);
-        setExpandedOrderId(data.id);
+      // Nếu không đăng nhập, tìm theo guestKey kèm theo orderId
+      if (!isLoggedIn) {
+        const guestKey = getGuestKey();
+        if (!guestKey) {
+          setSearchError('Không tìm thấy thông tin khách hàng. Vui lòng đặt hàng để được theo dõi.');
+          setOrders([]);
+          setSearchLoading(false);
+          return;
+        }
+        
+        // Load tất cả đơn hàng của guest và filter theo orderId
+        const response = await orderApi.getByGuestKey(guestKey);
+        const data = response.data || response;
+        const ordersArray = Array.isArray(data) ? data : [];
+        const foundOrder = ordersArray.find(order => 
+          String(order.id) === String(searchOrderId) || 
+          String(order.orderCode) === String(searchOrderId)
+        );
+        
+        if (foundOrder) {
+          setOrders([foundOrder]);
+          setExpandedOrderId(foundOrder.id);
+        } else {
+          setSearchError('Không tìm thấy đơn hàng với mã này trong danh sách của bạn');
+          setOrders([]);
+        }
       } else {
-        setSearchError('Không tìm thấy đơn hàng');
-        setOrders([]);
+        // Đã đăng nhập: tìm theo API getById
+        const response = await orderApi.getById(searchOrderId);
+        const data = response.data || response;
+        
+        if (data) {
+          setOrders([data]);
+          setExpandedOrderId(data.id);
+        } else {
+          setSearchError('Không tìm thấy đơn hàng');
+          setOrders([]);
+        }
       }
     } catch (err) {
       console.error("Lỗi tra cứu đơn hàng:", err);
@@ -327,6 +376,19 @@ const OrderHistoryPage = () => {
             </button>
           )}
         </div>
+
+        {/* Thông báo cho khách vãng lai */}
+        {!isLoggedIn && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <FaExclamationCircle className="text-blue-600 mt-0.5 shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-bold mb-1">Bạn chưa đăng nhập</p>
+                <p>Hệ thống sẽ tự động hiển thị các đơn hàng bạn đã đặt từ thiết bị này. Hoặc bạn có thể tìm kiếm theo mã đơn hàng.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search Box */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">

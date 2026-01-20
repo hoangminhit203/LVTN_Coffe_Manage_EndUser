@@ -17,10 +17,7 @@ const PaymentCallback = () => {
         // Giả sử 00 là thành công
         if (result.success || result.includes("00")) {
           setStatus('success');
-          // Tự động chuyển về trang chủ sau 2 giây
-          setTimeout(() => {
-            navigate('/');
-          }, 2000);
+          // Không tự động chuyển hướng, để người dùng quyết định
         } else {
           setStatus('fail');
         }
@@ -48,12 +45,12 @@ const PaymentCallback = () => {
             <div className="text-green-500 text-6xl mb-4">✓</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Thanh toán thành công!</h2>
             <p className="text-gray-600 mb-4">Đơn hàng của bạn đã được xác nhận và đang được xử lý.</p>
-            <p className="text-sm text-gray-500 mb-6">Đang chuyển về trang chủ...</p>
+            <p className="text-sm text-gray-500 mb-6">Bạn có thể xem chi tiết đơn hàng trong lịch sử đơn hàng.</p>
             <div className="flex gap-3">
-              <button onClick={() => navigate('/')} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">
+              <button onClick={() => navigate('/')} className="flex-1 bg-gray-100 text-gray-800 py-3 rounded-xl font-bold hover:bg-gray-200">
                 Về trang chủ
               </button>
-              <button onClick={() => navigate('/dashboard')} className="flex-1 bg-gray-100 text-gray-800 py-3 rounded-xl font-bold hover:bg-gray-200">
+              <button onClick={() => navigate('/dashboard')} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">
                 Xem đơn hàng
               </button>
             </div>
